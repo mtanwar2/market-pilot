@@ -1,0 +1,15 @@
+llm:
+  provider: openai
+
+  providers:
+    openai:
+      model: some-openai-model
+      api-key: ${OPENAI_API_KEY}
+
+    gemini:
+      model: some-gemini-model
+      api-key: ${GEMINI_API_KEY}
+
+    fake:
+      model: fake-model
+      api-key: fake-key
