@@ -9,15 +9,19 @@ import com.tanwar.market_pilot.llm.model.OllamaChatResponse
 import com.tanwar.market_pilot.llm.model.OllamaMessage
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.properties.LlmProperties
+import com.tanwar.market_pilot.llm.properties.TimeoutProperties
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
+import java.time.Duration
+import java.util.concurrent.TimeoutException
 
 @Component("ollama")
 class OllamaLlmClient(
-    private val llmProperties: LlmProperties,
+    llmProperties: LlmProperties,
+    private val timeoutProperties: TimeoutProperties,
     webClientBuilder: WebClient.Builder
 ) : LlmClient {
 
@@ -74,9 +78,17 @@ class OllamaLlmClient(
                 .bodyValue(ollamaRequest)
                 .retrieve()
                 .bodyToMono<OllamaChatResponse>()
+                .timeout(Duration.ofMillis(timeoutProperties.durationMs))
+                .onErrorMap(TimeoutException::class.java) { ex ->
+                    LlmException(
+                        statusCode = 504,
+                        message = "Ollama request timed out",
+                        cause = ex
+                    )
+                }
                 .block()
                 ?: throw LlmException(
-                    429,
+                    502,
                     "Ollama returned an empty response"
                 )
 
@@ -111,28 +123,13 @@ class OllamaLlmClient(
                 finishReason = response.done_reason
             )
 
-        } catch (ex: LlmException) {
-
-            log.error(
-                "Ollama request failed durationMs={} statusCode={} reason={}",
-                elapsedMs(startedAt),
-                ex.statusCode,
-                ex.message,
-                ex
-            )
-
-            throw ex
-
         } catch (ex: WebClientResponseException) {
-
             val statusCode = ex.statusCode.value()
 
-            log.error(
-                "Ollama HTTP request failed durationMs={} statusCode={} reason={}",
+            log.warn(
+                "Ollama HTTP request failed durationMs={} statusCode={}",
                 elapsedMs(startedAt),
-                statusCode,
-                ex.message,
-                ex
+                statusCode
             )
 
             throw LlmException(
@@ -141,12 +138,20 @@ class OllamaLlmClient(
                 statusCode = statusCode
             )
 
-        } catch (ex: Exception) {
-
-            log.error(
-                "Ollama request failed durationMs={} reason={}",
+        } catch (ex: LlmException) {
+            log.warn(
+                "Ollama request rejected durationMs={} statusCode={} reason={}",
                 elapsedMs(startedAt),
-                ex.message,
+                ex.statusCode,
+                ex.message
+            )
+            throw ex
+
+        } catch (ex: Exception) {
+            log.error(
+                "Unexpected Ollama client failure durationMs={} exceptionType={}",
+                elapsedMs(startedAt),
+                ex.javaClass.simpleName,
                 ex
             )
 

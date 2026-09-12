@@ -2,42 +2,43 @@ package com.tanwar.market_pilot.service
 
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
+import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.TokenUsage
-import com.tanwar.market_pilot.llm.properties.LlmProperties
 import com.tanwar.market_pilot.model.ChatRequest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.slf4j.MDC
 
 class ChatServiceTest {
 
     private val fakeLlmClient = mock<LlmClient>()
-
-    private val properties = LlmProperties(
-        provider = "fake",
-        providers = mapOf(
-            "fake" to LlmProperties.ProviderConfig(
-                model = "fake-model",
-                apiKey = "fake-key"
-            )
-        )
-    )
-
-    private val llmClients = mapOf(
-        "fake" to fakeLlmClient
-    )
-
     private val llmClientFactory = mock<LlmClientFactory>()
-
     private val chatService = ChatService(
         llmClientFactory
     )
+
+    @BeforeEach
+    fun setUp() {
+        whenever(llmClientFactory.getClient())
+            .thenReturn(fakeLlmClient)
+    }
+
+    @AfterEach
+    fun tearDown() {
+        MDC.clear()
+    }
 
     @Test
     fun `should return response for valid request`() {
@@ -64,6 +65,7 @@ class ChatServiceTest {
             response.message
         )
         assertNotNull(response.conversationId)
+        assertNotNull(response.turnId)
     }
 
     @Test
@@ -100,6 +102,42 @@ class ChatServiceTest {
 
         assertEquals("Hello from LLM", response.message)
         assertEquals("conversation-123", response.conversationId)
+        assertNotNull(response.turnId)
+    }
+
+    @Test
+    fun `should mint a new turnId for each message in the same conversation`() {
+        whenever(fakeLlmClient.generate(any()))
+            .thenReturn(
+                LlmResponse(
+                    content = "ok",
+                    usage = TokenUsage(0, 0, 0),
+                    finishReason = "stop"
+                )
+            )
+
+        val first = chatService.chat(
+            ChatRequest(conversationId = "conversation-123", message = "Hello")
+        )
+        val second = chatService.chat(
+            ChatRequest(conversationId = "conversation-123", message = "Follow up")
+        )
+
+        assertEquals("conversation-123", first.conversationId)
+        assertEquals("conversation-123", second.conversationId)
+        assertNotEquals(first.turnId, second.turnId)
+    }
+
+    @Test
+    fun `should not mint a turnId for rejected empty messages`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            chatService.chat(
+                ChatRequest(conversationId = "conversation-123", message = "")
+            )
+        }
+
+        assertNull(MDC.get("turnId"))
+        assertNull(MDC.get("conversationId"))
     }
 
     @Test
@@ -118,6 +156,8 @@ class ChatServiceTest {
         }
 
         assertEquals("LLM unavailable", exception.message)
+        assertNotNull(MDC.get("turnId"))
+        assertNotNull(MDC.get("conversationId"))
     }
 
     @Test
@@ -139,6 +179,9 @@ class ChatServiceTest {
 
         chatService.chat(request)
 
-        verify(fakeLlmClient).generate(any())
+        val requestCaptor = argumentCaptor<LlmRequest>()
+        verify(fakeLlmClient).generate(requestCaptor.capture())
+        assertEquals(1, requestCaptor.firstValue.messages.size)
+        assertEquals("Hello", requestCaptor.firstValue.messages.single().content)
     }
 }

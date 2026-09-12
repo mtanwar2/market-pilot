@@ -1,5 +1,6 @@
 package com.tanwar.market_pilot.service
 
+import com.tanwar.market_pilot.config.ChatLogContext
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
 import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
@@ -31,14 +32,17 @@ class ChatService(
         val conversationId =
             request.conversationId
                 ?: UUID.randomUUID().toString()
+        val turnId = UUID.randomUUID().toString()
 
-        MDC.put(CONVERSATION_ID_MDC, conversationId)
+        MDC.put(ChatLogContext.CONVERSATION_ID, conversationId)
+        MDC.put(ChatLogContext.TURN_ID, turnId)
         val startedAt = System.nanoTime()
 
         try {
             log.info(
-                "Processing chat request conversationId={} newConversation={} messageLength={}",
+                "Started chat turn conversationId={} turnId={} newConversation={} messageLength={}",
                 conversationId,
+                turnId,
                 isNewConversation,
                 request.message.length
             )
@@ -56,8 +60,9 @@ class ChatService(
             val response = client.generate(llmRequest)
 
             log.info(
-                "Chat completed conversationId={} durationMs={} responseLength={} finishReason={} inputTokens={} outputTokens={} totalTokens={}",
+                "Completed chat turn conversationId={} turnId={} durationMs={} responseLength={} finishReason={} inputTokens={} outputTokens={} totalTokens={}",
                 conversationId,
+                turnId,
                 elapsedMs(startedAt),
                 response.content.length,
                 response.finishReason,
@@ -68,19 +73,19 @@ class ChatService(
 
             return ChatResponse(
                 conversationId = conversationId,
+                turnId = turnId,
                 message = response.content
             )
         } catch (ex: Exception) {
             log.error(
-                "Chat failed conversationId={} durationMs={} reason={}",
+                "Chat turn failed conversationId={} turnId={} durationMs={} exceptionType={} reason={}",
                 conversationId,
+                turnId,
                 elapsedMs(startedAt),
-                ex.message,
-                ex
+                ex.javaClass.simpleName,
+                ex.message
             )
             throw ex
-        } finally {
-            MDC.remove(CONVERSATION_ID_MDC)
         }
     }
 
@@ -88,7 +93,6 @@ class ChatService(
         (System.nanoTime() - startedAt) / 1_000_000
 
     companion object {
-        private const val CONVERSATION_ID_MDC = "conversationId"
         private val log = LoggerFactory.getLogger(ChatService::class.java)
     }
 }

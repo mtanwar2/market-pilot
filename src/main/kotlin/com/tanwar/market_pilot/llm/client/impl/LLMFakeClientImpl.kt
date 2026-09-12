@@ -1,60 +1,31 @@
 package com.tanwar.market_pilot.llm.client.impl
 
 import com.tanwar.market_pilot.llm.client.LlmClient
-import com.tanwar.market_pilot.llm.exception.LlmException
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.util.concurrent.atomic.AtomicInteger
 
 @Component("fake")
-class FakeFailingLlmClient : LlmClient {
+class FakeLlmClient : LlmClient {
 
     private val log =
-        LoggerFactory.getLogger(FakeFailingLlmClient::class.java)
-
-    private val callCount = AtomicInteger(0)
+        LoggerFactory.getLogger(FakeLlmClient::class.java)
 
     override fun generate(request: LlmRequest): LlmResponse {
-
-        val currentCall = callCount.incrementAndGet()
-
         log.info(
-            "Fake LLM called: callNumber={}, messageCount={}",
-            currentCall,
+            "Fake LLM generating deterministic response messageCount={}",
             request.messages.size
         )
 
-        // First call fails
-        if (currentCall < 4) {
-
-            log.warn(
-                "Fake LLM intentionally failing first call"
-            )
-
-            throw LlmException(
-                500,
-                message = "Simulated LLM failure on first call"
-            )
-        }
-
-        // Second call succeeds
-        log.info(
-            "Fake LLM succeeding: callNumber={}",
-            currentCall
-        )
-
         return LlmResponse(
-            content = "Fake LLM response after  ${currentCall } retry",
-
+            content = "This is a response from the fake LLM.",
             usage = TokenUsage(
-                inputTokens = 10,
-                outputTokens = 20,
-                totalTokens = 30
+                inputTokens = 0,
+                outputTokens = 0,
+                totalTokens = 0
             ),
-
             finishReason = "stop"
         )
     }

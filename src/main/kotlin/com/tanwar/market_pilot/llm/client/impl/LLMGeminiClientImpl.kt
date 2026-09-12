@@ -19,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 
 @Component("gemini")
 class GeminiLlmClient(
@@ -78,7 +79,7 @@ class GeminiLlmClient(
                 GeminiContent(
                     role = when (message.role) {
                         LlmRole.USER -> "user"
-                        LlmRole.ASSISTANT -> "assistant"
+                        LlmRole.ASSISTANT -> "model"
 
                         LlmRole.SYSTEM ->
                             error(
@@ -115,12 +116,11 @@ class GeminiLlmClient(
         )
 
         try {
-
             val apiKey = config.apiKey
+                ?.takeIf { it.isNotBlank() }
                 ?: throw LlmException(
-                    401,
-                    "Gemini API key is missing"
-                ) as Throwable
+                    message = "Gemini API key is not configured"
+                )
 
             val response = webClient
                 .post()
@@ -135,16 +135,23 @@ class GeminiLlmClient(
                 .retrieve()
                 .bodyToMono<GeminiResponse>()
                 .timeout(Duration.ofMillis(timeoutProperties.durationMs))
+                .onErrorMap(TimeoutException::class.java) { ex ->
+                    LlmException(
+                        statusCode = 504,
+                        message = "Gemini request timed out",
+                        cause = ex
+                    )
+                }
                 .block()
                 ?: throw LlmException(
-                    204,
+                    502,
                     "Gemini returned an empty response"
                 )
 
             val candidate =
                 response.candidates?.firstOrNull()
                     ?: throw LlmException(
-                        204,
+                        502,
                         "Gemini returned no candidates"
                     )
 
@@ -154,7 +161,7 @@ class GeminiLlmClient(
                     ?.mapNotNull { it.text }
                     ?.joinToString("")
                     ?: throw LlmException(
-                        204,
+                        502,
                         "Gemini returned no text content"
                     )
 
@@ -183,28 +190,12 @@ class GeminiLlmClient(
             )
 
         } catch (ex: WebClientResponseException) {
-
-            log.error(
-                "Gemini request failed durationMs={} statusCode={} reason={}",
-                elapsedMs(startedAt),
-                ex.statusCode,
-                ex.responseBodyAsString,
-                ex.message,
-                ex
-            )
-
-            throw ex
-
-        } catch (ex: WebClientResponseException) {
-
             val statusCode = ex.statusCode.value()
 
-            log.error(
-                "Gemini HTTP request failed durationMs={} statusCode={} reason={}",
+            log.warn(
+                "Gemini HTTP request failed durationMs={} statusCode={}",
                 elapsedMs(startedAt),
-                statusCode,
-                ex.message,
-                ex
+                statusCode
             )
 
             throw LlmException(
@@ -213,17 +204,24 @@ class GeminiLlmClient(
                 statusCode = statusCode
             )
 
-        } catch (ex: Exception) {
-
-            log.error(
-                "Gemini request failed durationMs={} reason={}",
+        } catch (ex: LlmException) {
+            log.warn(
+                "Gemini request rejected durationMs={} statusCode={} reason={}",
                 elapsedMs(startedAt),
-                ex.message,
+                ex.statusCode,
+                ex.message
+            )
+            throw ex
+
+        } catch (ex: Exception) {
+            log.error(
+                "Unexpected Gemini client failure durationMs={} exceptionType={}",
+                elapsedMs(startedAt),
+                ex.javaClass.simpleName,
                 ex
             )
 
             throw LlmException(
-                503,
                 message = "Failed to generate response from Gemini",
                 cause = ex
             )

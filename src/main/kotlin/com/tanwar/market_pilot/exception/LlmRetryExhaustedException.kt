@@ -6,7 +6,7 @@ class LlmRetryExhaustedException(
     val attempts: Int,
     cause: Throwable
 ) : LlmException(
-    429,
+    503,
     "LLM request failed after maximum $attempts attempts",
     cause
 )

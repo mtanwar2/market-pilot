@@ -4,6 +4,8 @@ import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.slf4j.LoggerFactory
 
 class CircuitBreakerLlmClient(
     private val delegate: LlmClient,
@@ -11,14 +13,22 @@ class CircuitBreakerLlmClient(
 ) : LlmClient {
 
     override fun generate(request: LlmRequest): LlmResponse {
-
-        val decoratedSupplier =
-            CircuitBreaker.decorateSupplier(
-                circuitBreaker
-            ) {
+        try {
+            return circuitBreaker.executeSupplier {
                 delegate.generate(request)
             }
+        } catch (ex: CallNotPermittedException) {
+            log.warn(
+                "LLM call rejected by circuit breaker name={} state={}",
+                circuitBreaker.name,
+                circuitBreaker.state
+            )
+            throw ex
+        }
+    }
 
-        return decoratedSupplier.get()
+    companion object {
+        private val log =
+            LoggerFactory.getLogger(CircuitBreakerLlmClient::class.java)
     }
 }

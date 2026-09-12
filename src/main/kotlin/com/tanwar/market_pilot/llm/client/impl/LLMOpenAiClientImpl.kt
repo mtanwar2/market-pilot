@@ -17,14 +17,14 @@ class OpenAiLlmClient(
 
         val model = llmProperties.providers["openai"]?.model
 
-        log.info(
-            "OpenAI client is a stub; returning a hardcoded response model={} messageCount={}",
+        log.warn(
+            "Fake OpenAI client invoked; no external API call will be made model={} messageCount={}",
             model,
             request.messages.size
         )
 
         return LlmResponse(
-            content = "This is a response from the fake LLM.",
+            content = "This is a response from the fake OpenAI client.",
             usage = TokenUsage(
                 inputTokens = 0,
                 outputTokens = 0,
