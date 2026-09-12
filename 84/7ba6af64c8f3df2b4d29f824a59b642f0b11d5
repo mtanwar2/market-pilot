@@ -1,0 +1,110 @@
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMGeminiClientImpl.kt
+  s_df41ef15a4abd3::t_7b0329e12a2fb1 22,82,120,122-123,147,154,164,195-196,198,207-214,216,218,220
+  s_df41ef15a4abd3::t_dffa71122b1480 138-144
+src/main/kotlin/com/tanwar/market_pilot/config/ChatLogContext.kt
+  s_df41ef15a4abd3::t_5a22f37a88dcd2 1-15
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/RetryBackoffCalculator.kt
+  s_df41ef15a4abd3::t_db68a28ba1f75d 5,13,15-16,18-36
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMFakeClientImpl.kt
+  s_df41ef15a4abd3::t_11b248e96aeb07 11,14,18,23,25-27
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMOpenAiClientImpl.kt
+  s_df41ef15a4abd3::t_501db141be82c1 20-21,27
+src/test/kotlin/com/tanwar/market_pilot/controller/ChatControllerTest.kt
+  s_df41ef15a4abd3::t_ded2f2ec2c624a 20,37
+  s_df41ef15a4abd3::t_bf8e8b76d83e9b 1-5,7-19,21-36,38-70,72-75,99-100
+  s_df41ef15a4abd3::t_f375b8e477e027 6
+  s_df41ef15a4abd3::t_33b5da2cc33e33 71,76-98
+src/test/kotlin/com/tanwar/market_pilot/llm/client/resilience/ResilientLlmClientTest.kt
+  s_df41ef15a4abd3::t_d2d56916bd409f 1-96
+src/main/kotlin/com/tanwar/market_pilot/config/RequestCorrelationFilter.kt
+  s_df41ef15a4abd3::t_b725345aaa8e34 27,33
+  s_df41ef15a4abd3::t_ac14418b3ca012 3
+  s_df41ef15a4abd3::t_e448e169eaf644 1-2,4-26,28-32,34-41
+src/main/resources/application.yml
+  s_df41ef15a4abd3::t_abdaa4d8b9b84e 9,13,16-25,28-29,32,36-37
+  h_699675406fdcdd 8
+  s_df41ef15a4abd3::t_62f29a8ebdc2f8 3
+src/main/kotlin/com/tanwar/market_pilot/llm/client/LlmClientFactory.kt
+  s_df41ef15a4abd3::t_41fa077c2db3f9 6-7,10,18,23-27,31,33,36-37,39-41,43-56,58-62
+.env.example
+  s_df41ef15a4abd3::t_a619333581aa5c 1-5
+src/main/kotlin/com/tanwar/market_pilot/service/ChatService.kt
+  s_df41ef15a4abd3::t_af2003c800bef1 3,35,37-38,43,45,63,65,76,81,83
+  s_df41ef15a4abd3::t_e9aa0bc6f7fe60 85-86
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/ResilientLlmClient.kt
+  s_df41ef15a4abd3::t_5c2f6e717169c8 14,26,34-41,44,46,49-51,55,80,85-102
+src/main/kotlin/com/tanwar/market_pilot/llm/properties/LlmProperties.kt
+  s_df41ef15a4abd3::t_1269b05a656a72 3-5,7,9,12,14-16,21
+src/main/kotlin/com/tanwar/market_pilot/model/ChatModels.kt
+  s_df41ef15a4abd3::t_23704e437ad803 28-29
+  s_df41ef15a4abd3::t_b53a99bcbbc332 3,5-6,8-12,14-17,22-23
+  s_df41ef15a4abd3::t_02de7b45b6b00b 4,18-21
+src/main/kotlin/com/tanwar/market_pilot/config/WebClient.kt
+  s_df41ef15a4abd3::t_5bf57fa35021c5 5
+  s_df41ef15a4abd3::t_5aa5fe29b7c25c 3-4,8-10,12-13,16-18,21,23-32,34-35
+src/main/kotlin/com/tanwar/market_pilot/exception/LlmRetryExhaustedException.kt
+  s_df41ef15a4abd3::t_8afd24247ca7dd 9
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/config/CircuitBreakerConfiguration.kt
+  s_df41ef15a4abd3::t_39c57e2314dc09 3,12-14,20-29
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/LlmRetryPolicy.kt
+  s_df41ef15a4abd3::t_cf24dcc6640a22 7,10
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/CircuitBreakerLlmClient.kt
+  s_df41ef15a4abd3::t_0755ce6790dc0d 7-8,16-17,20-28,30-32
+src/main/kotlin/com/tanwar/market_pilot/llm/client/resilience/LlmCircuitBreakerFactory.kt
+  s_df41ef15a4abd3::t_e48fddaec5bb14 5,14-28
+src/main/kotlin/com/tanwar/market_pilot/controller/ChatController.kt
+  s_df41ef15a4abd3::t_b86b1bb2346157 6,21-24,30-33,37-38
+  s_df41ef15a4abd3::t_d6ba01f430e050 7
+src/test/kotlin/com/tanwar/market_pilot/service/ChatServiceTest.kt
+  s_df41ef15a4abd3::t_04185247f97578 5,15,18,41,182-185
+  s_df41ef15a4abd3::t_699eda320e3178 38-40
+  s_df41ef15a4abd3::t_dade98c8f10b3d 159-160
+  s_df41ef15a4abd3::t_3184ca07178338 68
+  s_df41ef15a4abd3::t_166ebd77f22aea 105-140
+  s_df41ef15a4abd3::t_c35e1fa55f1daa 32-37
+  s_df41ef15a4abd3::t_745d679b3c555e 9,11,13,22
+  s_df41ef15a4abd3::t_8c82d567b4cac9 42
+src/main/kotlin/com/tanwar/market_pilot/llm/properties/RetryProperties.kt
+  s_df41ef15a4abd3::t_2f993c89921779 3-5,7,9,12,14-15,17-22
+  s_df41ef15a4abd3::t_7c1293e319441b 24-30
+src/main/kotlin/com/tanwar/market_pilot/exception/GlobalExceptionHandler.kt
+  s_df41ef15a4abd3::t_f14e26419db08f 155-157
+  s_df41ef15a4abd3::t_b055263653d5f1 173-174
+  s_df41ef15a4abd3::t_a69d0272b17db7 3
+  s_df41ef15a4abd3::t_e8804a0f44f215 169
+  s_df41ef15a4abd3::t_16c99f2924f2e0 5-8,11-12,15,23-28,33-36,40-154,158-168,170-172,175-178
+  s_df41ef15a4abd3::t_12df5b47a88b30 4
+src/main/kotlin/com/tanwar/market_pilot/llm/properties/TimeOutProperties.kt
+  s_df41ef15a4abd3::t_bcfd1221f96edf 3,5,7,10
+src/main/kotlin/com/tanwar/market_pilot/llm/properties/CircuitBreakerProperties.kt
+  s_df41ef15a4abd3::t_1b91b1e0132c29 27-33
+  s_df41ef15a4abd3::t_e30ce1e577e9b1 1-26
+build.gradle.kts
+  s_df41ef15a4abd3::t_3dab5c34d01fb2 26
+src/test/kotlin/com/tanwar/market_pilot/llm/client/resilience/CircuitBreakerLlmClientTest.kt
+  s_df41ef15a4abd3::t_ed5504b66d06be 1-49
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMOllamaClientImpl.kt
+  s_df41ef15a4abd3::t_51bd5dbf52df41 12,18-19,23-24,81,91,129-130,132,141-148,150,152,154
+  s_df41ef15a4abd3::t_58618ac8d8434e 82-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "847ba6af64c8f3df2b4d29f824a59b642f0b11d5",
+  "prompts": {},
+  "humans": {
+    "h_699675406fdcdd": {
+      "author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  },
+  "sessions": {
+    "s_df41ef15a4abd3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0092a56d-fbe2-4f23-98a9-2cbf0a6461e6",
+        "model": "auto-smart"
+      },
+      "human_author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  }
+}
