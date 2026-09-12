@@ -1,15 +1,61 @@
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [conversationId=%X{conversationId}] - %msg%n"
+  level:
+    com.tanwar.market_pilot: INFO
+    io.netty.resolver.dns: DEBUG
+
 llm:
-  provider: openai
+  retry:
+    max-attempts: 3
+    initial-backoff-ms: 1000
+    jitter-factor: 0.5
+    timeout:
+      duration-ms: 30000
 
+  provider: gemini
   providers:
-    openai:
-      model: some-openai-model
-      api-key: ${OPENAI_API_KEY}
-
     gemini:
-      model: some-gemini-model
-      api-key: ${GEMINI_API_KEY}
-
+      model: gemini-3.6-flash
+      api-key: AQ.Ab8RN6JG3P4jDYpZ6o0aTOInBY3V3OhXwkzxupzXbrjHt6cuHQ
+      base-url: https://generativelanguage.googleapis.com
+    openai:
+      model: YOUR_OPENAI_MODEL
+      api-key: ${OPENAI_API_KEY}
+      base-url: https://api.openai.com
     fake:
       model: fake-model
       api-key: fake-key
+    ollama:
+      model: qwen3:4b
+      base-url: http://localhost:11434
+resilience4j:
+  circuitbreaker:
+    instances:
+
+      llm-gemini:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+
+      llm-openai:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+
+      llm-ollama:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true

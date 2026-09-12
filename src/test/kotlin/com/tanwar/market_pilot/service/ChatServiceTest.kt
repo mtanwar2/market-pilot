@@ -1,6 +1,7 @@
 package com.tanwar.market_pilot.service
 
 import com.tanwar.market_pilot.llm.client.LlmClient
+import com.tanwar.market_pilot.llm.client.LlmClientFactory
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.properties.LlmProperties
@@ -32,9 +33,10 @@ class ChatServiceTest {
         "fake" to fakeLlmClient
     )
 
+    private val llmClientFactory = mock<LlmClientFactory>()
+
     private val chatService = ChatService(
-        llmClients = llmClients,
-        llmProperties = properties
+        llmClientFactory
     )
 
     @Test

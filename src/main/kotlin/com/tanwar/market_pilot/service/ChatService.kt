@@ -1,50 +1,94 @@
 package com.tanwar.market_pilot.service
 
-import com.tanwar.market_pilot.llm.client.LlmClient
+import com.tanwar.market_pilot.llm.client.LlmClientFactory
 import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmRole
-import com.tanwar.market_pilot.llm.properties.LlmProperties
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatResponse
+import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
 class ChatService(
-    private val llmClients: Map<String, LlmClient>,
-    private val llmProperties: LlmProperties
+    private val llmClientFactory: LlmClientFactory
 ) {
 
     fun chat(request: ChatRequest): ChatResponse {
+        if (request.message.isBlank()) {
+            log.warn(
+                "Rejected empty chat message conversationId={}",
+                request.conversationId ?: "new"
+            )
+        }
+        require(request.message.isNotBlank()) {
+            "Message cannot be empty"
+        }
 
+        val isNewConversation = request.conversationId == null
         val conversationId =
-            request.conversationId ?: UUID.randomUUID().toString()
-        val provider = llmProperties.provider
-        val providerConfig = llmProperties.providers[provider]
-            ?: throw IllegalArgumentException(
-                "No configuration found for provider: $provider"
+            request.conversationId
+                ?: UUID.randomUUID().toString()
+
+        MDC.put(CONVERSATION_ID_MDC, conversationId)
+        val startedAt = System.nanoTime()
+
+        try {
+            log.info(
+                "Processing chat request conversationId={} newConversation={} messageLength={}",
+                conversationId,
+                isNewConversation,
+                request.message.length
             )
 
-        val llmClient = llmClients[provider]
-            ?: throw IllegalArgumentException(
-                "No LLM client found for provider: $provider"
-            )
-        val llmRequest = LlmRequest(
-            model = providerConfig.model,
-            messages = listOf(
-                LlmMessage(
-                    role = LlmRole.USER,
-                    content = request.message
+            val llmRequest = LlmRequest(
+                messages = listOf(
+                    LlmMessage(
+                        role = LlmRole.USER,
+                        content = request.message
+                    )
                 )
             )
-        )
 
-        val llmResponse = llmClient.generate(llmRequest)
+            val client = llmClientFactory.getClient()
+            val response = client.generate(llmRequest)
 
-        return ChatResponse(
-            message = llmResponse.content,
-            conversationId = conversationId
-        )
+            log.info(
+                "Chat completed conversationId={} durationMs={} responseLength={} finishReason={} inputTokens={} outputTokens={} totalTokens={}",
+                conversationId,
+                elapsedMs(startedAt),
+                response.content.length,
+                response.finishReason,
+                response.usage.inputTokens,
+                response.usage.outputTokens,
+                response.usage.totalTokens
+            )
+
+            return ChatResponse(
+                conversationId = conversationId,
+                message = response.content
+            )
+        } catch (ex: Exception) {
+            log.error(
+                "Chat failed conversationId={} durationMs={} reason={}",
+                conversationId,
+                elapsedMs(startedAt),
+                ex.message,
+                ex
+            )
+            throw ex
+        } finally {
+            MDC.remove(CONVERSATION_ID_MDC)
+        }
+    }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
+
+    companion object {
+        private const val CONVERSATION_ID_MDC = "conversationId"
+        private val log = LoggerFactory.getLogger(ChatService::class.java)
     }
 }

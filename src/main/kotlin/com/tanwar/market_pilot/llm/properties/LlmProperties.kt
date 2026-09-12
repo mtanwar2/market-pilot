@@ -10,6 +10,7 @@ data class LlmProperties(
 
     data class ProviderConfig(
         val model: String,
-        val apiKey: String
+        val apiKey: String? = null,
+        val baseUrl: String? = null
     )
 }

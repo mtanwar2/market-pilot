@@ -3,6 +3,7 @@ package com.tanwar.market_pilot.controller
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatResponse
 import com.tanwar.market_pilot.service.ChatService
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -16,6 +17,15 @@ class ChatController(
 
     @PostMapping
     fun chat(@RequestBody request: ChatRequest): ChatResponse {
+        log.info(
+            "Received chat request conversationId={} messageLength={}",
+            request.conversationId ?: "new",
+            request.message.length
+        )
         return chatService.chat(request)
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(ChatController::class.java)
     }
 }
