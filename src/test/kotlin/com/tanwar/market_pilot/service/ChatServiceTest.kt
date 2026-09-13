@@ -54,6 +54,7 @@ class ChatServiceTest {
 
         val request = ChatRequest(
             conversationId = null,
+            turnId = "turn-1",
             message = "Hello"
         )
 
@@ -65,7 +66,7 @@ class ChatServiceTest {
             response.message
         )
         assertNotNull(response.conversationId)
-        assertNotNull(response.turnId)
+        assertEquals("turn-1", response.turnId)
     }
 
     @Test
@@ -73,6 +74,7 @@ class ChatServiceTest {
 
         val request = ChatRequest(
             conversationId = null,
+            turnId = "turn-empty",
             message = ""
         )
 
@@ -95,6 +97,7 @@ class ChatServiceTest {
 
         val request = ChatRequest(
             conversationId = "conversation-123",
+            turnId = "turn-456",
             message = "Hello"
         )
 
@@ -102,11 +105,11 @@ class ChatServiceTest {
 
         assertEquals("Hello from LLM", response.message)
         assertEquals("conversation-123", response.conversationId)
-        assertNotNull(response.turnId)
+        assertEquals("turn-456", response.turnId)
     }
 
     @Test
-    fun `should mint a new turnId for each message in the same conversation`() {
+    fun `should echo the client turnId for each message in the same conversation`() {
         whenever(fakeLlmClient.generate(any()))
             .thenReturn(
                 LlmResponse(
@@ -117,22 +120,36 @@ class ChatServiceTest {
             )
 
         val first = chatService.chat(
-            ChatRequest(conversationId = "conversation-123", message = "Hello")
+            ChatRequest(
+                conversationId = "conversation-123",
+                turnId = "turn-1",
+                message = "Hello"
+            )
         )
         val second = chatService.chat(
-            ChatRequest(conversationId = "conversation-123", message = "Follow up")
+            ChatRequest(
+                conversationId = "conversation-123",
+                turnId = "turn-2",
+                message = "Follow up"
+            )
         )
 
         assertEquals("conversation-123", first.conversationId)
         assertEquals("conversation-123", second.conversationId)
+        assertEquals("turn-1", first.turnId)
+        assertEquals("turn-2", second.turnId)
         assertNotEquals(first.turnId, second.turnId)
     }
 
     @Test
-    fun `should not mint a turnId for rejected empty messages`() {
+    fun `should not bind a turnId for rejected empty messages`() {
         assertThrows(IllegalArgumentException::class.java) {
             chatService.chat(
-                ChatRequest(conversationId = "conversation-123", message = "")
+                ChatRequest(
+                    conversationId = "conversation-123",
+                    turnId = "turn-empty",
+                    message = ""
+                )
             )
         }
 
@@ -148,6 +165,7 @@ class ChatServiceTest {
 
         val request = ChatRequest(
             conversationId = null,
+            turnId = "turn-fail",
             message = "Hello"
         )
 
@@ -156,7 +174,7 @@ class ChatServiceTest {
         }
 
         assertEquals("LLM unavailable", exception.message)
-        assertNotNull(MDC.get("turnId"))
+        assertEquals("turn-fail", MDC.get("turnId"))
         assertNotNull(MDC.get("conversationId"))
     }
 
@@ -174,6 +192,7 @@ class ChatServiceTest {
 
         val request = ChatRequest(
             conversationId = "conversation-123",
+            turnId = "turn-456",
             message = "Hello"
         )
 

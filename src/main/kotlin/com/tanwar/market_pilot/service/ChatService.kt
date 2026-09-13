@@ -18,11 +18,16 @@ class ChatService(
 ) {
 
     fun chat(request: ChatRequest): ChatResponse {
+        val turnId = request.turnId?.trim().orEmpty()
         if (request.message.isBlank()) {
             log.warn(
-                "Rejected empty chat message conversationId={}",
-                request.conversationId ?: "new"
+                "Rejected empty chat message conversationId={} turnId={}",
+                request.conversationId ?: "new",
+                turnId.ifBlank { "missing" }
             )
+        }
+        require(turnId.isNotBlank()) {
+            "Turn ID cannot be empty"
         }
         require(request.message.isNotBlank()) {
             "Message cannot be empty"
@@ -32,7 +37,6 @@ class ChatService(
         val conversationId =
             request.conversationId
                 ?: UUID.randomUUID().toString()
-        val turnId = UUID.randomUUID().toString()
 
         MDC.put(ChatLogContext.CONVERSATION_ID, conversationId)
         MDC.put(ChatLogContext.TURN_ID, turnId)

@@ -43,7 +43,7 @@ class ChatControllerTest {
         mockMvc.perform(
             post("/chat")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"message":"   "}""")
+                .content("""{"message":"   ","turnId":"turn-1"}""")
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
@@ -60,7 +60,7 @@ class ChatControllerTest {
             post("/chat")
                 .header(RequestCorrelationFilter.REQUEST_ID_HEADER, "request-123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"message":"Hello"}""")
+                .content("""{"message":"Hello","turnId":"turn-456"}""")
         )
             .andExpect(status().isBadGateway)
             .andExpect(jsonPath("$.code").value("LLM_PROVIDER_ERROR"))
@@ -68,7 +68,7 @@ class ChatControllerTest {
                 "The LLM provider could not complete the request"
             ))
             .andExpect(jsonPath("$.requestId").value("request-123"))
-            .andExpect(jsonPath("$.turnId").doesNotExist())
+            .andExpect(jsonPath("$.turnId").value("turn-456"))
             .andExpect(header().string(
                 RequestCorrelationFilter.REQUEST_ID_HEADER,
                 "request-123"
@@ -89,12 +89,24 @@ class ChatControllerTest {
         mockMvc.perform(
             post("/chat")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"message":"Hello","conversationId":"conversation-123"}""")
+                .content("""{"message":"Hello","conversationId":"conversation-123","turnId":"turn-456"}""")
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.conversationId").value("conversation-123"))
             .andExpect(jsonPath("$.turnId").value("turn-456"))
             .andExpect(header().string(ChatController.CONVERSATION_ID_HEADER, "conversation-123"))
             .andExpect(header().string(ChatController.TURN_ID_HEADER, "turn-456"))
+    }
+
+    @Test
+    fun `rejects missing turnId with structured validation error`() {
+        mockMvc.perform(
+            post("/chat")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"message":"Hello"}""")
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.details.turnId").exists())
     }
 }

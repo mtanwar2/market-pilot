@@ -12,6 +12,17 @@ data class ChatRequest(
     )
     val message: String,
 
+    @field:NotBlank(message = "Turn ID cannot be empty")
+    @field:Size(
+        max = 100,
+        message = "Turn ID must not exceed 100 characters"
+    )
+    @field:Pattern(
+        regexp = "[A-Za-z0-9._-]{1,100}",
+        message = "Turn ID must contain only letters, digits, '.', '_' or '-'"
+    )
+    val turnId: String? = null,
+
     @field:Size(
         max = 100,
         message = "Conversation ID must not exceed 100 characters"
