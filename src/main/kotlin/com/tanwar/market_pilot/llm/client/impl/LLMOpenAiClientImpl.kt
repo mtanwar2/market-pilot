@@ -7,30 +7,39 @@ import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.properties.LlmProperties
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
 
 @Component("openai")
 class OpenAiLlmClient(
-    private val llmProperties: LlmProperties
+    llmProperties: LlmProperties
 ) : LlmClient {
 
-    override fun generate(request: LlmRequest): LlmResponse {
+    private val config =
+        llmProperties.providers["openai"]
+            ?: throw IllegalStateException(
+                "OpenAI configuration is missing"
+            )
 
-        val model = llmProperties.providers["openai"]?.model
+    override fun generate(
+        request: LlmRequest
+    ): Mono<LlmResponse> {
 
-        log.warn(
-            "Fake OpenAI client invoked; no external API call will be made model={} messageCount={}",
-            model,
+        log.info(
+            "Fake OpenAI client invoked model={} messageCount={}",
+            config.model,
             request.messages.size
         )
 
-        return LlmResponse(
-            content = "This is a response from the fake OpenAI client.",
-            usage = TokenUsage(
-                inputTokens = 0,
-                outputTokens = 0,
-                totalTokens = 0
-            ),
-            finishReason = "stop"
+        return Mono.just(
+            LlmResponse(
+                content = "This is a response from the fake OpenAI client.",
+                usage = TokenUsage(
+                    inputTokens = 0,
+                    outputTokens = 0,
+                    totalTokens = 0
+                ),
+                finishReason = "stop"
+            )
         )
     }
 

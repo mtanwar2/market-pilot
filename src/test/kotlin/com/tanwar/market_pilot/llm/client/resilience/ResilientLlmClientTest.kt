@@ -8,8 +8,9 @@ import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.properties.RetryProperties
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import reactor.core.publisher.Mono
+import reactor.test.StepVerifier
 import java.util.concurrent.atomic.AtomicInteger
 
 class ResilientLlmClientTest {
@@ -21,8 +22,7 @@ class ResilientLlmClientTest {
         jitterFactor = 0.0
     )
     private val retryPolicy = LlmRetryPolicy()
-    private val backoffCalculator =
-        RetryBackoffCalculator(retryProperties)
+    private val backoffCalculator = RetryBackoffCalculator(retryProperties)
     private val request = LlmRequest(messages = emptyList())
 
     @Test
@@ -31,14 +31,16 @@ class ResilientLlmClientTest {
         val expected = response()
         val delegate = client {
             if (calls.incrementAndGet() < 3) {
-                throw LlmException(503, "temporarily unavailable")
+                Mono.error(LlmException(503, "temporarily unavailable"))
+            } else {
+                Mono.just(expected)
             }
-            expected
         }
 
-        val actual = resilient(delegate).generate(request)
+        StepVerifier.create(resilient(delegate).generate(request))
+            .expectNext(expected)
+            .verifyComplete()
 
-        assertEquals(expected, actual)
         assertEquals(3, calls.get())
     }
 
@@ -47,12 +49,28 @@ class ResilientLlmClientTest {
         val calls = AtomicInteger()
         val delegate = client {
             calls.incrementAndGet()
-            throw LlmException(400, "bad request")
+            Mono.error(LlmException(400, "bad request"))
         }
 
-        assertThrows(LlmException::class.java) {
-            resilient(delegate).generate(request)
+        StepVerifier.create(resilient(delegate).generate(request))
+            .expectError(LlmException::class.java)
+            .verify()
+
+        assertEquals(1, calls.get())
+    }
+
+    @Test
+    fun `does not retry unexpected exceptions`() {
+        val calls = AtomicInteger()
+        val delegate = client {
+            calls.incrementAndGet()
+            Mono.error(IllegalStateException("boom"))
         }
+
+        StepVerifier.create(resilient(delegate).generate(request))
+            .expectError(IllegalStateException::class.java)
+            .verify()
+
         assertEquals(1, calls.get())
     }
 
@@ -61,17 +79,17 @@ class ResilientLlmClientTest {
         val calls = AtomicInteger()
         val delegate = client {
             calls.incrementAndGet()
-            throw LlmException(429, "rate limited")
+            Mono.error(LlmException(429, "rate limited"))
         }
 
-        val exception = assertThrows(
-            LlmRetryExhaustedException::class.java
-        ) {
-            resilient(delegate).generate(request)
-        }
+        StepVerifier.create(resilient(delegate).generate(request))
+            .expectErrorSatisfies { error ->
+                val exception = error as LlmRetryExhaustedException
+                assertEquals(3, exception.attempts)
+                assertEquals(503, exception.statusCode)
+            }
+            .verify()
 
-        assertEquals(3, exception.attempts)
-        assertEquals(503, exception.statusCode)
         assertEquals(3, calls.get())
     }
 
@@ -83,9 +101,9 @@ class ResilientLlmClientTest {
             retryProperties = retryProperties
         )
 
-    private fun client(block: () -> LlmResponse) =
+    private fun client(block: () -> Mono<LlmResponse>) =
         object : LlmClient {
-            override fun generate(request: LlmRequest): LlmResponse = block()
+            override fun generate(request: LlmRequest): Mono<LlmResponse> = block()
         }
 
     private fun response() = LlmResponse(

@@ -14,7 +14,7 @@ llm:
     jitter-factor: 0.5
 
   timeout:
-    duration-ms: 30000
+    duration-ms: 300000
 
   circuit-breaker:
     sliding-window-size: 10
@@ -25,7 +25,7 @@ llm:
 
   providers:
     gemini:
-      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      model: ${GEMINI_MODEL:gemini-3.6-flash}
       api-key: ${GEMINI_API_KEY:}
       base-url: https://generativelanguage.googleapis.com
     openai:
@@ -35,3 +35,17 @@ llm:
     ollama:
       model: ${OLLAMA_MODEL:qwen3:4b}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/market_pilot
+    username: market_pilot
+    password: market_pilot
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

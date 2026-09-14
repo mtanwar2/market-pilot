@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping("/chat")
@@ -23,29 +24,53 @@ class ChatController(
     fun chat(
         @Valid @RequestBody request: ChatRequest,
         httpResponse: HttpServletResponse
-    ): ChatResponse {
+    ): Mono<ChatResponse> {
+
         val turnId = checkNotNull(request.turnId) {
             "Turn ID cannot be empty"
         }
-        MDC.put(ChatLogContext.TURN_ID, turnId)
+
+        MDC.put(
+            ChatLogContext.TURN_ID,
+            turnId
+        )
+
         request.conversationId?.let { conversationId ->
-            MDC.put(ChatLogContext.CONVERSATION_ID, conversationId)
+            MDC.put(
+                ChatLogContext.CONVERSATION_ID,
+                conversationId
+            )
         }
+
         log.info(
-            "Received chat request conversationId={} turnId={} messageLength={}",
+            "Received chat request conversationId={} turnId={} messageCount={}",
             request.conversationId ?: "new",
             turnId,
-            request.message.length
+            request.messages.size
         )
-        val response = chatService.chat(request)
-        httpResponse.setHeader(CONVERSATION_ID_HEADER, response.conversationId)
-        httpResponse.setHeader(TURN_ID_HEADER, response.turnId)
-        return response
+
+        return chatService
+            .chat(request)
+            .doOnNext { response ->
+
+                httpResponse.setHeader(
+                    CONVERSATION_ID_HEADER,
+                    response.conversationId
+                )
+
+                httpResponse.setHeader(
+                    TURN_ID_HEADER,
+                    response.turnId
+                )
+            }
     }
 
     companion object {
+
         const val CONVERSATION_ID_HEADER = "X-Conversation-ID"
         const val TURN_ID_HEADER = "X-Turn-ID"
-        private val log = LoggerFactory.getLogger(ChatController::class.java)
+
+        private val log =
+            LoggerFactory.getLogger(ChatController::class.java)
     }
 }

@@ -8,8 +8,9 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import reactor.core.publisher.Mono
+import reactor.test.StepVerifier
 import java.util.concurrent.atomic.AtomicInteger
 
 class CircuitBreakerLlmClientTest {
@@ -18,9 +19,11 @@ class CircuitBreakerLlmClientTest {
     fun `opens circuit after configured failure threshold`() {
         val calls = AtomicInteger()
         val delegate = object : LlmClient {
-            override fun generate(request: LlmRequest): LlmResponse {
-                calls.incrementAndGet()
-                throw LlmException(503, "unavailable")
+            override fun generate(request: LlmRequest): Mono<LlmResponse> {
+                return Mono.defer {
+                    calls.incrementAndGet()
+                    Mono.error(LlmException(503, "unavailable"))
+                }
             }
         }
         val circuitBreaker = CircuitBreaker.of(
@@ -35,15 +38,17 @@ class CircuitBreakerLlmClientTest {
         val request = LlmRequest(emptyList())
 
         repeat(2) {
-            assertThrows(LlmException::class.java) {
-                client.generate(request)
-            }
+            StepVerifier.create(client.generate(request))
+                .expectError(LlmException::class.java)
+                .verify()
         }
 
         assertEquals(CircuitBreaker.State.OPEN, circuitBreaker.state)
-        assertThrows(CallNotPermittedException::class.java) {
-            client.generate(request)
-        }
-        assertEquals(2, calls.get())
+        val callsWhenOpen = calls.get()
+        StepVerifier.create(client.generate(request))
+            .expectError(CallNotPermittedException::class.java)
+            .verify()
+        assertEquals(callsWhenOpen, calls.get())
+        assertEquals(2, callsWhenOpen)
     }
 }

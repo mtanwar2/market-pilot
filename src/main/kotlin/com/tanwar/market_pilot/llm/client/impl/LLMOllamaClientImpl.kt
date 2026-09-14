@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
+import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.TimeoutException
 
@@ -47,7 +48,9 @@ class OllamaLlmClient(
         )
     }
 
-    override fun generate(request: LlmRequest): LlmResponse {
+    override fun generate(
+        request: LlmRequest
+    ): Mono<LlmResponse> {
 
         val ollamaRequest = OllamaChatRequest(
             model = config.model,
@@ -70,96 +73,123 @@ class OllamaLlmClient(
             request.messages.size
         )
 
-        try {
+        return webClient
+            .post()
+            .uri("/api/chat")
+            .bodyValue(ollamaRequest)
+            .retrieve()
+            .bodyToMono<OllamaChatResponse>()
 
-            val response = webClient
-                .post()
-                .uri("/api/chat")
-                .bodyValue(ollamaRequest)
-                .retrieve()
-                .bodyToMono<OllamaChatResponse>()
-                .timeout(Duration.ofMillis(timeoutProperties.durationMs))
-                .onErrorMap(TimeoutException::class.java) { ex ->
+            /*
+             * Convert Ollama response into our common
+             * LlmResponse model.
+             */
+            .map { response ->
+
+                log.info(
+                    "Ollama responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={}",
+                    elapsedMs(startedAt),
+                    response.done_reason,
+                    response.message.content.length,
+                    response.prompt_eval_count,
+                    response.eval_count
+                )
+
+                LlmResponse(
+                    content = response.message.content,
+
+                    usage = TokenUsage(
+                        inputTokens = response.prompt_eval_count,
+                        outputTokens = response.eval_count,
+
+                        totalTokens =
+                            if (
+                                response.prompt_eval_count != null &&
+                                response.eval_count != null
+                            ) {
+                                response.prompt_eval_count +
+                                        response.eval_count
+                            } else {
+                                null
+                            }
+                    ),
+
+                    finishReason = response.done_reason
+                )
+            }
+
+            /*
+             * Convert timeout into our domain exception.
+             */
+            .timeout(
+                Duration.ofMillis(
+                    timeoutProperties.durationMs
+                )
+            )
+            .onErrorMap(
+                TimeoutException::class.java
+            ) { ex ->
+
+                log.warn(
+                    "Ollama request timed out durationMs={} timeoutMs={}",
+                    elapsedMs(startedAt),
+                    timeoutProperties.durationMs
+                )
+
+                LlmException(
+                    statusCode = 504,
+                    message = "Ollama request timed out",
+                    cause = ex
+                )
+            }
+
+            /*
+             * Convert HTTP errors into LlmException
+             * so the retry layer can inspect statusCode.
+             */
+            .onErrorMap(
+                WebClientResponseException::class.java
+            ) { ex ->
+
+                val statusCode = ex.statusCode.value()
+
+                log.warn(
+                    "Ollama HTTP request failed durationMs={} statusCode={}",
+                    elapsedMs(startedAt),
+                    statusCode
+                )
+
+                LlmException(
+                    message = "Ollama request failed with HTTP $statusCode",
+                    cause = ex,
+                    statusCode = statusCode
+                )
+            }
+
+            /*
+             * Preserve existing LlmException.
+             * Convert all other unexpected exceptions
+             * into our domain exception.
+             */
+            .onErrorMap { ex ->
+
+                if (ex is LlmException) {
+                    ex
+                } else {
+
+                    log.error(
+                        "Unexpected Ollama client failure durationMs={} exceptionType={}",
+                        elapsedMs(startedAt),
+                        ex.javaClass.simpleName,
+                        ex
+                    )
+
                     LlmException(
-                        statusCode = 504,
-                        message = "Ollama request timed out",
+                        message = "Failed to generate response from Ollama",
                         cause = ex
                     )
                 }
-                .block()
-                ?: throw LlmException(
-                    502,
-                    "Ollama returned an empty response"
-                )
-
-            log.info(
-                "Ollama responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={}",
-                elapsedMs(startedAt),
-                response.done_reason,
-                response.message.content.length,
-                response.prompt_eval_count,
-                response.eval_count
-            )
-
-            return LlmResponse(
-                content = response.message.content,
-
-                usage = TokenUsage(
-                    inputTokens = response.prompt_eval_count,
-                    outputTokens = response.eval_count,
-
-                    totalTokens =
-                        if (
-                            response.prompt_eval_count != null &&
-                            response.eval_count != null
-                        ) {
-                            response.prompt_eval_count +
-                                    response.eval_count
-                        } else {
-                            null
-                        }
-                ),
-
-                finishReason = response.done_reason
-            )
-
-        } catch (ex: WebClientResponseException) {
-            val statusCode = ex.statusCode.value()
-
-            log.warn(
-                "Ollama HTTP request failed durationMs={} statusCode={}",
-                elapsedMs(startedAt),
-                statusCode
-            )
-
-            throw LlmException(
-                message = "Ollama request failed with HTTP $statusCode",
-                cause = ex,
-                statusCode = statusCode
-            )
-
-        } catch (ex: LlmException) {
-            log.warn(
-                "Ollama request rejected durationMs={} statusCode={} reason={}",
-                elapsedMs(startedAt),
-                ex.statusCode,
-                ex.message
-            )
-            throw ex
-
-        } catch (ex: Exception) {
-            log.error(
-                "Unexpected Ollama client failure durationMs={} exceptionType={}",
-                elapsedMs(startedAt),
-                ex.javaClass.simpleName,
-                ex
-            )
-
-            throw LlmException(
-                message = "Failed to generate response from Ollama",
-                cause = ex
-            )
-        }
+            }
     }
 
     companion object {

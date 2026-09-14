@@ -1,16 +1,21 @@
 package com.tanwar.market_pilot.model
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonValue
+import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 
 data class ChatRequest(
-    @field:NotBlank(message = "Message cannot be empty")
+    @field:NotEmpty(message = "Messages cannot be empty")
     @field:Size(
-        max = 10_000,
-        message = "Message must not exceed 10000 characters"
+        max = 50,
+        message = "Transcript must not exceed 50 messages"
     )
-    val message: String,
+    @field:Valid
+    val messages: List<ChatMessage> = emptyList(),
 
     @field:NotBlank(message = "Turn ID cannot be empty")
     @field:Size(
@@ -33,6 +38,33 @@ data class ChatRequest(
     )
     val conversationId: String? = null
 )
+
+data class ChatMessage(
+    val role: ChatRole,
+
+    @field:NotBlank(message = "Message content cannot be empty")
+    @field:Size(
+        max = 10_000,
+        message = "Message must not exceed 10000 characters"
+    )
+    val content: String
+)
+
+enum class ChatRole {
+    USER,
+    ASSISTANT;
+
+    @JsonValue
+    fun toJson(): String = name.lowercase()
+
+    companion object {
+        @JvmStatic
+        @JsonCreator
+        fun fromJson(value: String): ChatRole =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+                ?: throw IllegalArgumentException("Unsupported chat role: $value")
+    }
+}
 
 data class ChatResponse(
     val message: String,

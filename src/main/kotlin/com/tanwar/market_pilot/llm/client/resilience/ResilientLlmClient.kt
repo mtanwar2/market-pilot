@@ -7,41 +7,62 @@ import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.properties.RetryProperties
 import org.slf4j.LoggerFactory
+import reactor.core.publisher.Mono
+import java.time.Duration
 
 class ResilientLlmClient(
     private val client: LlmClient,
     private val retryPolicy: LlmRetryPolicy,
     private val backoffCalculator: RetryBackoffCalculator,
-    retryProperties: RetryProperties,
+    retryProperties: RetryProperties
 ) : LlmClient {
 
     private val maxAttempts = retryProperties.maxAttempts
 
     override fun generate(
         request: LlmRequest
-    ): LlmResponse {
-        var attempt = 1
+    ): Mono<LlmResponse> {
 
-        while (attempt <= maxAttempts) {
-            val startedAt = System.nanoTime()
-            try {
-                log.info(
-                    "LLM attempt started: attempt={}/{}",
-                    attempt,
-                    maxAttempts
-                )
+        return Mono.defer {
+            attempt(
+                request = request,
+                attempt = 1
+            )
+        }
+    }
 
-                val response = client.generate(request)
+    private fun attempt(
+        request: LlmRequest,
+        attempt: Int
+    ): Mono<LlmResponse> {
+
+        val startedAt = System.nanoTime()
+
+        log.info(
+            "LLM attempt started: attempt={}/{}",
+            attempt,
+            maxAttempts
+        )
+
+        return client
+            .generate(request)
+            .doOnSuccess {
                 log.info(
                     "LLM attempt succeeded: attempt={}/{} durationMs={}",
                     attempt,
                     maxAttempts,
                     elapsedMs(startedAt)
                 )
-                return response
+            }
+            .onErrorResume { ex ->
 
-            } catch (ex: LlmException) {
-                val retryable = retryPolicy.shouldRetry(ex.statusCode)
+                if (ex !is LlmException) {
+                    return@onErrorResume Mono.error(ex)
+                }
+
+                val retryable =
+                    retryPolicy.shouldRetry(ex.statusCode)
+
                 log.warn(
                     "LLM attempt failed: attempt={}/{} durationMs={} statusCode={} retryable={} reason={}",
                     attempt,
@@ -53,45 +74,35 @@ class ResilientLlmClient(
                 )
 
                 if (!retryable) {
-                    throw ex
+                    return@onErrorResume Mono.error(ex)
                 }
 
                 if (attempt >= maxAttempts) {
-                    throw LlmRetryExhaustedException(
-                        attempts = attempt,
-                        cause = ex
+                    return@onErrorResume Mono.error(
+                        LlmRetryExhaustedException(
+                            attempts = attempt,
+                            cause = ex
+                        )
                     )
                 }
 
-                backoff(attempt)
+                val delayMs =
+                    backoffCalculator.calculateDelay(attempt)
 
-                attempt++
+                log.info(
+                    "Waiting before LLM retry: completedAttempt={} delayMs={}",
+                    attempt,
+                    delayMs
+                )
+
+                Mono.delay(Duration.ofMillis(delayMs))
+                    .then(
+                        attempt(
+                            request = request,
+                            attempt = attempt + 1
+                        )
+                    )
             }
-        }
-
-        throw IllegalStateException("Unreachable")
-    }
-
-    private fun backoff(attempt: Int) {
-        val delayMs =
-            backoffCalculator.calculateDelay(attempt)
-
-        log.info(
-            "Waiting before LLM retry: completedAttempt={} delayMs={}",
-            attempt,
-            delayMs
-        )
-
-        try {
-            Thread.sleep(delayMs)
-        } catch (ex: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw LlmException(
-                statusCode = 503,
-                message = "LLM retry interrupted",
-                cause = ex
-            )
-        }
     }
 
     private fun elapsedMs(startedAt: Long): Long =

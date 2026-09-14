@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
+import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.TimeoutException
 
@@ -52,7 +53,7 @@ class GeminiLlmClient(
         )
     }
 
-    override fun generate(request: LlmRequest): LlmResponse {
+    override fun generate(request: LlmRequest): Mono<LlmResponse> {
 
         val systemMessages = request.messages
             .filter { it.role == LlmRole.SYSTEM }
@@ -115,117 +116,147 @@ class GeminiLlmClient(
             conversationMessages.size
         )
 
-        try {
-            val apiKey = config.apiKey
-                ?.takeIf { it.isNotBlank() }
-                ?: throw LlmException(
+        val apiKey = config.apiKey
+            ?.takeIf { it.isNotBlank() }
+            ?: return Mono.error(
+                LlmException(
                     message = "Gemini API key is not configured"
                 )
+            )
 
-            val response = webClient
-                .post()
-                .uri(
-                    "/v1beta/models/${config.model}:generateContent"
+        return webClient
+            .post()
+            .uri(
+                "/v1beta/models/${config.model}:generateContent"
+            )
+            .header(
+                "x-goog-api-key",
+                apiKey
+            )
+            .bodyValue(geminiRequest)
+            .retrieve()
+            .bodyToMono<GeminiResponse>()
+
+            /*
+             * Convert GeminiResponse → LlmResponse.
+             *
+             * This executes when the Mono is subscribed
+             * and the Gemini response arrives.
+             */
+            .map { response ->
+
+                val candidate =
+                    response.candidates?.firstOrNull()
+                        ?: throw LlmException(
+                            502,
+                            "Gemini returned no candidates"
+                        )
+
+                val content =
+                    candidate.content
+                        ?.parts
+                        ?.mapNotNull { it.text }
+                        ?.joinToString("")
+                        ?: throw LlmException(
+                            502,
+                            "Gemini returned no text content"
+                        )
+
+                val usage = response.usageMetadata
+
+                log.info(
+                    "Gemini responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={} totalTokens={}",
+                    elapsedMs(startedAt),
+                    candidate.finishReason,
+                    content.length,
+                    usage?.promptTokenCount,
+                    usage?.candidatesTokenCount,
+                    usage?.totalTokenCount
                 )
-                .header(
-                    "x-goog-api-key",
-                    apiKey
+
+                LlmResponse(
+                    content = content,
+
+                    usage = TokenUsage(
+                        inputTokens = usage?.promptTokenCount,
+                        outputTokens = usage?.candidatesTokenCount,
+                        totalTokens = usage?.totalTokenCount
+                    ),
+
+                    finishReason = candidate.finishReason
                 )
-                .bodyValue(geminiRequest)
-                .retrieve()
-                .bodyToMono<GeminiResponse>()
-                .timeout(Duration.ofMillis(timeoutProperties.durationMs))
-                .onErrorMap(TimeoutException::class.java) { ex ->
+            }
+
+            /*
+             * Timeout happens asynchronously.
+             * Convert it into our domain exception so
+             * the retry layer can recognize HTTP 504.
+             */
+            .timeout(
+                Duration.ofMillis(
+                    timeoutProperties.durationMs
+                )
+            )
+            .onErrorMap(TimeoutException::class.java) { ex ->
+                log.warn(
+                    "Gemini request timed out durationMs={} timeoutMs={}",
+                    elapsedMs(startedAt),
+                    timeoutProperties.durationMs
+                )
+
+                LlmException(
+                    statusCode = 504,
+                    message = "Gemini request timed out",
+                    cause = ex
+                )
+            }
+
+            /*
+             * Convert HTTP errors into LlmException.
+             *
+             * 429 / 500 / 503 / etc. are preserved
+             * as status codes for the retry policy.
+             */
+            .onErrorMap(
+                WebClientResponseException::class.java
+            ) { ex ->
+
+                val statusCode = ex.statusCode.value()
+
+                log.warn(
+                    "Gemini HTTP request failed durationMs={} statusCode={}",
+                    elapsedMs(startedAt),
+                    statusCode
+                )
+
+                LlmException(
+                    message = "Gemini request failed with HTTP $statusCode",
+                    cause = ex,
+                    statusCode = statusCode
+                )
+            }
+
+            /*
+             * Preserve our own domain exceptions.
+             */
+            .onErrorMap { ex ->
+
+                if (ex is LlmException) {
+                    ex
+                } else {
+                    log.error(
+                        "Unexpected Gemini client failure durationMs={} exceptionType={}",
+                        elapsedMs(startedAt),
+                        ex.javaClass.simpleName,
+                        ex
+                    )
+
                     LlmException(
-                        statusCode = 504,
-                        message = "Gemini request timed out",
+                        message = "Failed to generate response from Gemini",
                         cause = ex
                     )
                 }
-                .block()
-                ?: throw LlmException(
-                    502,
-                    "Gemini returned an empty response"
-                )
-
-            val candidate =
-                response.candidates?.firstOrNull()
-                    ?: throw LlmException(
-                        502,
-                        "Gemini returned no candidates"
-                    )
-
-            val content =
-                candidate.content
-                    ?.parts
-                    ?.mapNotNull { it.text }
-                    ?.joinToString("")
-                    ?: throw LlmException(
-                        502,
-                        "Gemini returned no text content"
-                    )
-
-            val usage = response.usageMetadata
-
-            log.info(
-                "Gemini responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={} totalTokens={}",
-                elapsedMs(startedAt),
-                candidate.finishReason,
-                content.length,
-                usage?.promptTokenCount,
-                usage?.candidatesTokenCount,
-                usage?.totalTokenCount
-            )
-
-            return LlmResponse(
-                content = content,
-
-                usage = TokenUsage(
-                    inputTokens = usage?.promptTokenCount,
-                    outputTokens = usage?.candidatesTokenCount,
-                    totalTokens = usage?.totalTokenCount
-                ),
-
-                finishReason = candidate.finishReason
-            )
-
-        } catch (ex: WebClientResponseException) {
-            val statusCode = ex.statusCode.value()
-
-            log.warn(
-                "Gemini HTTP request failed durationMs={} statusCode={}",
-                elapsedMs(startedAt),
-                statusCode
-            )
-
-            throw LlmException(
-                message = "Gemini request failed with HTTP $statusCode",
-                cause = ex,
-                statusCode = statusCode
-            )
-
-        } catch (ex: LlmException) {
-            log.warn(
-                "Gemini request rejected durationMs={} statusCode={} reason={}",
-                elapsedMs(startedAt),
-                ex.statusCode,
-                ex.message
-            )
-            throw ex
-
-        } catch (ex: Exception) {
-            log.error(
-                "Unexpected Gemini client failure durationMs={} exceptionType={}",
-                elapsedMs(startedAt),
-                ex.javaClass.simpleName,
-                ex
-            )
-
-            throw LlmException(
-                message = "Failed to generate response from Gemini",
-                cause = ex
-            )
-        }
+            }
     }
 
     companion object {
