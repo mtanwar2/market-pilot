@@ -1,0 +1,30 @@
+src/main/kotlin/com/tanwar/market_pilot/portfolio/analysis/model/HoldingAnalysis.kt
+  h_699675406fdcdd 1-15
+src/main/kotlin/com/tanwar/market_pilot/portfolio/analysis/model/PortfolioAnalysis.kt
+  h_699675406fdcdd 1-13
+src/main/kotlin/com/tanwar/market_pilot/portfolio/controller/MarketDataController.kt
+  h_699675406fdcdd 1-19
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/PortfolioAnalysisService.kt
+  h_699675406fdcdd 1-106
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/MarketDataClient.kt
+  h_699675406fdcdd 1-8
+src/main/kotlin/com/tanwar/market_pilot/portfolio/controller/PortfolioAnalysisController.kt
+  h_699675406fdcdd 1-20
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/MarketDataService.kt
+  h_699675406fdcdd 1-15
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/model/MarketData.kt
+  h_699675406fdcdd 1-8
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/FakeMarketDataClient.kt
+  h_699675406fdcdd 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "670f33512d04df1d2117ba1cac888e3da54fa32d",
+  "prompts": {},
+  "humans": {
+    "h_699675406fdcdd": {
+      "author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  }
+}
