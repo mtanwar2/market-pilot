@@ -3,13 +3,15 @@ package com.tanwar.market_pilot.llm.model
 data class LlmRequest(
     val messages: List<LlmMessage>,
     val temperature: Double? = null,
-    val maxTokens: Int? = null
+    val maxTokens: Int? = null,
+    val tools: List<ToolDefinition> = emptyList()
 )
 
 data class LlmResponse(
     val content: String,
     val usage: TokenUsage,
-    val finishReason: String?
+    val finishReason: String?,
+    val toolCalls: List<ToolCall> = emptyList()
 )
 
 data class LlmMessage(
@@ -53,6 +55,7 @@ data class OllamaChatResponse(
 data class GeminiRequest(
     val systemInstruction: GeminiContent?,
     val contents: List<GeminiContent>,
+    val tools: List<GeminiTool>? = null,
     val generationConfig: GeminiGenerationConfig?
 )
 
@@ -62,7 +65,8 @@ data class GeminiContent(
 )
 
 data class GeminiPart(
-    val text: String
+    val text: String? = null,
+    val functionCall: GeminiFunctionCall? = null
 )
 
 data class GeminiGenerationConfig(
@@ -85,11 +89,27 @@ data class GeminiResponseContent(
 )
 
 data class GeminiResponsePart(
-    val text: String?
+    val text: String?,
+    val functionCall: GeminiFunctionCall? = null
 )
 
 data class GeminiUsageMetadata(
     val promptTokenCount: Long?,
     val candidatesTokenCount: Long?,
     val totalTokenCount: Long?
+)
+
+data class GeminiFunctionDeclaration(
+    val name: String,
+    val description: String,
+    val parameters: Map<String, Any?>
+)
+
+data class GeminiTool(
+    val functionDeclarations: List<GeminiFunctionDeclaration>
+)
+
+data class GeminiFunctionCall(
+    val name: String,
+    val args: Map<String, Any>? = null
 )

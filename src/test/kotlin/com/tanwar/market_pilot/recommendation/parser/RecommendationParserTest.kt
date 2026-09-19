@@ -16,14 +16,19 @@ class RecommendationParserTest {
 
         val json = """
             {
-              "recommendation": "BUY",
-              "confidence": 0.82,
-              "reasons": [
-                "Strong revenue growth",
-                "Increasing market demand"
-              ],
-              "risks": [
-                "High valuation"
+              "recommendations": [
+                {
+                  "symbol": "NVDA",
+                  "recommendation": "BUY",
+                  "confidence": 0.82,
+                  "reasons": [
+                    "Strong revenue growth",
+                    "Increasing market demand"
+                  ],
+                  "risks": [
+                    "High valuation"
+                  ]
+                }
               ]
             }
         """.trimIndent()
@@ -31,23 +36,72 @@ class RecommendationParserTest {
         val result = parser.parse(json)
 
         Assertions.assertEquals(
+            1,
+            result.recommendations.size
+        )
+
+        val recommendation = result.recommendations.first()
+
+        Assertions.assertEquals(
+            "NVDA",
+            recommendation.symbol
+        )
+
+        Assertions.assertEquals(
             Recommendation.BUY,
-            result.recommendation
+            recommendation.recommendation
         )
 
         Assertions.assertEquals(
             0.82,
-            result.confidence
+            recommendation.confidence
         )
 
         Assertions.assertEquals(
             2,
-            result.reasons.size
+            recommendation.reasons.size
         )
 
         Assertions.assertEquals(
             1,
-            result.risks.size
+            recommendation.risks.size
+        )
+    }
+
+    @Test
+    fun `should parse multiple stock recommendations`() {
+
+        val json = """
+            {
+              "recommendations": [
+                {
+                  "symbol": "NVDA",
+                  "recommendation": "BUY",
+                  "confidence": 0.82,
+                  "reasons": ["Strong growth"],
+                  "risks": ["High valuation"]
+                },
+                {
+                  "symbol": "AAPL",
+                  "recommendation": "HOLD",
+                  "confidence": 0.61,
+                  "reasons": ["Stable cash flow"],
+                  "risks": ["Slowing hardware sales"]
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        Assertions.assertEquals(
+            listOf("NVDA", "AAPL"),
+            result.recommendations.map { it.symbol }
+        )
+
+        Assertions.assertEquals(
+            Recommendation.HOLD,
+            result.recommendations[1].recommendation
         )
     }
 
@@ -56,8 +110,9 @@ class RecommendationParserTest {
 
         val invalidJson = """
         {
-          "recommendation": "BUY",
-          "confidence": 0.82,
+          "recommendations": [
+            {
+              "symbol": "NVDA",
     """.trimIndent()
 
         assertThrows<Exception> {
@@ -66,14 +121,36 @@ class RecommendationParserTest {
     }
 
     @Test
+    fun `should reject missing recommendations array`() {
+
+        val json = """
+        {
+          "recommendation": "BUY",
+          "confidence": 0.82,
+          "reasons": ["Strong growth"],
+          "risks": ["High valuation"]
+        }
+    """.trimIndent()
+
+        assertThrows<Exception> {
+            parser.parse(json)
+        }
+    }
+
+    @Test
     fun `should reject unsupported recommendation`() {
 
         val json = """
         {
-          "recommendation": "MAYBE",
-          "confidence": 0.82,
-          "reasons": ["Strong growth"],
-          "risks": ["High valuation"]
+          "recommendations": [
+            {
+              "symbol": "NVDA",
+              "recommendation": "MAYBE",
+              "confidence": 0.82,
+              "reasons": ["Strong growth"],
+              "risks": ["High valuation"]
+            }
+          ]
         }
     """.trimIndent()
 
@@ -87,9 +164,14 @@ class RecommendationParserTest {
 
         val json = """
         {
-          "recommendation": "BUY",
-          "reasons": ["Strong growth"],
-          "risks": ["High valuation"]
+          "recommendations": [
+            {
+              "symbol": "NVDA",
+              "recommendation": "BUY",
+              "reasons": ["Strong growth"],
+              "risks": ["High valuation"]
+            }
+          ]
         }
     """.trimIndent()
 

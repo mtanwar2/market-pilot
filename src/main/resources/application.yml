@@ -5,7 +5,7 @@ logging:
     com.tanwar.market_pilot: INFO
 
 llm:
-  provider: ${LLM_PROVIDER:gemini}
+  provider: ${LLM_PROVIDER:ollama}
 
   retry:
     max-attempts: 3
@@ -41,7 +41,9 @@ spring:
     username: market_pilot
     password: market_pilot
     driver-class-name: org.postgresql.Driver
-
+  mvc:
+    async:
+      request-timeout: 120000
   jpa:
     hibernate:
       ddl-auto: update
@@ -49,3 +51,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+market-data:
+  provider: ${MARKET_DATA_PROVIDER:fake}
+  api-key: ${ALPHA_VANTAGE_API_KEY}
+  base-url: https://www.alphavantage.co
+  rate-limit:
+    min-interval-ms: 1100

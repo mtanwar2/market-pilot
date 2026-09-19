@@ -1,40 +1,79 @@
 package com.tanwar.market_pilot.recommendation.prompt
 
+import com.tanwar.market_pilot.portfolio.analysis.model.PortfolioAnalysis
 import org.springframework.stereotype.Component
 
 @Component
 class RecommendationPromptBuilder {
 
-    fun build(stock: String): String {
+    fun build(
+        analysis: PortfolioAnalysis
+    ): String {
+
+        val holdings = analysis.holdings.joinToString("\n\n") { holding ->
+
+            """
+            Symbol: ${holding.symbol}
+            Quantity: ${holding.quantity}
+            Average Price: ${holding.averagePrice}
+            Current Price: ${holding.currentPrice}
+            Invested Amount: ${holding.investedAmount}
+            Current Value: ${holding.currentValue}
+            Profit: ${holding.profit}
+            Profit Percentage: ${holding.profitPercentage}%
+            Allocation Percentage: ${holding.allocationPercentage}%
+            """.trimIndent()
+        }
+
         return """
-            Analyze the stock: $stock.
+            You are a financial recommendation assistant.
 
-            Provide an investment recommendation based on the information
-            available to you.
+            Analyze the following investment portfolio.
 
-            Return ONLY valid JSON using exactly this structure:
+            Portfolio ID:
+            ${analysis.portfolioId}
+
+            Portfolio Summary:
+            Total Invested: ${analysis.totalInvested}
+            Total Current Value: ${analysis.totalCurrentValue}
+            Total Profit: ${analysis.totalProfit}
+            Total Profit Percentage: ${analysis.totalProfitPercentage}%
+
+            Holdings:
+
+            $holdings
+
+            Based on the portfolio information above, provide one
+            recommendation for every holding listed.
+
+            Return ONLY valid JSON in exactly this format:
 
             {
-              "recommendation": "BUY | SELL | HOLD",
-              "confidence": 0.0,
-              "reasons": [
-                "reason 1",
-                "reason 2"
-              ],
-              "risks": [
-                "risk 1",
-                "risk 2"
+              "recommendations": [
+                {
+                  "symbol": "NVDA",
+                  "recommendation": "BUY",
+                  "confidence": 0.82,
+                  "reasons": [
+                    "Reason 1",
+                    "Reason 2"
+                  ],
+                  "risks": [
+                    "Risk 1",
+                    "Risk 2"
+                  ]
+                }
               ]
             }
 
             Rules:
-            - recommendation must be BUY, SELL, or HOLD
+            - include exactly one entry per holding, using the same symbol
+            - recommendation must be one of: BUY, SELL, HOLD
             - confidence must be between 0.0 and 1.0
-            - reasons must contain at least one item
-            - risks must contain at least one item
+            - provide at least one reason per holding
+            - provide at least one risk per holding
             - do not include markdown
-            - do not include ```json
-            - return only the JSON object
+            - do not include any text outside the JSON
         """.trimIndent()
     }
 }

@@ -9,6 +9,7 @@ import java.util.UUID
 class PortfolioEntity(
 
     @Id
+    @GeneratedValue
     var id: UUID? = null,
 
     var name: String = "",

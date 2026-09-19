@@ -5,6 +5,7 @@ import com.tanwar.market_pilot.portfolio.analysis.model.PortfolioAnalysis
 import com.tanwar.market_pilot.portfolio.persistence.HoldingEntity
 import com.tanwar.market_pilot.portfolio.persistence.repository.PortfolioRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
@@ -14,7 +15,7 @@ class PortfolioAnalysisService(
     private val portfolioRepository: PortfolioRepository,
     private val marketDataService: MarketDataService
 ) {
-
+          @Transactional(readOnly = true)
     fun analyze(portfolioId: UUID): PortfolioAnalysis {
 
         val portfolio = portfolioRepository.findById(portfolioId)

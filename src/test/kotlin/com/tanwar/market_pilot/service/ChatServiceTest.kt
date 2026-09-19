@@ -2,10 +2,13 @@ package com.tanwar.market_pilot.service
 
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
+import com.tanwar.market_pilot.llm.client.impl.GeminiLlmClient
+import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
+import com.tanwar.market_pilot.llm.model.ToolDefinition
 import com.tanwar.market_pilot.model.ChatMessage
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatRole
@@ -20,15 +23,20 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.Duration
 
+@SpringBootTest
 class ChatServiceTest {
 
     private val fakeLlmClient = mock<LlmClient>()
     private val llmClientFactory = mock<LlmClientFactory>()
     private val chatService = ChatService(llmClientFactory)
+    @Autowired
+    lateinit var lmClientFactory: LlmClientFactory
 
     @BeforeEach
     fun setUp() {

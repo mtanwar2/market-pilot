@@ -1,10 +1,17 @@
 package com.tanwar.market_pilot.portfolio.market
 
 import com.tanwar.market_pilot.portfolio.market.model.MarketData
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 
 @Component
+@ConditionalOnProperty(
+    prefix = "market-data",
+    name = ["provider"],
+    havingValue = "fake",
+    matchIfMissing = true
+)
 class FakeMarketDataClient : MarketDataClient {
 
     private val prices = mapOf(

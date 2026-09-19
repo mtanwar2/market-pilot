@@ -7,6 +7,7 @@ import com.tanwar.market_pilot.portfolio.persistence.mapper.HoldingMapper
 import com.tanwar.market_pilot.portfolio.persistence.repository.HoldingRepository
 import com.tanwar.market_pilot.portfolio.persistence.repository.PortfolioRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
@@ -14,7 +15,7 @@ class HoldingService(
     private val portfolioRepository: PortfolioRepository,
     private val holdingRepository: HoldingRepository
 ) {
-
+          @Transactional
     fun addHolding(
         portfolioId: UUID,
         request: CreateHoldingRequest

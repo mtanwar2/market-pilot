@@ -3,14 +3,18 @@ package com.tanwar.market_pilot.llm.client.impl
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.exception.LlmException
 import com.tanwar.market_pilot.llm.model.GeminiContent
+import com.tanwar.market_pilot.llm.model.GeminiFunctionDeclaration
 import com.tanwar.market_pilot.llm.model.GeminiGenerationConfig
 import com.tanwar.market_pilot.llm.model.GeminiPart
 import com.tanwar.market_pilot.llm.model.GeminiRequest
 import com.tanwar.market_pilot.llm.model.GeminiResponse
+import com.tanwar.market_pilot.llm.model.GeminiTool
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
+import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.model.ToolDefinition
 import com.tanwar.market_pilot.llm.properties.LlmProperties
 import com.tanwar.market_pilot.llm.properties.TimeoutProperties
 import org.slf4j.LoggerFactory
@@ -99,7 +103,7 @@ class GeminiLlmClient(
                     )
                 )
             },
-
+            tools = toGeminiTools(request.tools),
             generationConfig = GeminiGenerationConfig(
                 temperature = request.temperature,
                 maxOutputTokens = request.maxTokens
@@ -161,6 +165,18 @@ class GeminiLlmClient(
                             502,
                             "Gemini returned no text content"
                         )
+                val toolCalls =
+                    candidate.content
+                        ?.parts
+                        .orEmpty()
+                        .mapNotNull { part ->
+                            part.functionCall?.let { functionCall ->
+                                ToolCall(
+                                    name = functionCall.name,
+                                    arguments = functionCall.args ?: emptyMap()
+                                )
+                            }
+                        }
 
                 val usage = response.usageMetadata
 
@@ -183,7 +199,8 @@ class GeminiLlmClient(
                         totalTokens = usage?.totalTokenCount
                     ),
 
-                    finishReason = candidate.finishReason
+                    finishReason = candidate.finishReason,
+                    toolCalls = toolCalls
                 )
             }
 
@@ -266,5 +283,26 @@ class GeminiLlmClient(
 
         private fun elapsedMs(startedAt: Long): Long =
             (System.nanoTime() - startedAt) / 1_000_000
+    }
+
+    private fun toGeminiTools(
+        tools: List<ToolDefinition>
+    ): List<GeminiTool>? {
+
+        if (tools.isEmpty()) {
+            return null
+        }
+
+        return listOf(
+            GeminiTool(
+                functionDeclarations = tools.map { tool ->
+                    GeminiFunctionDeclaration(
+                        name = tool.name,
+                        description = tool.description,
+                        parameters = tool.parameters
+                    )
+                }
+            )
+        )
     }
 }

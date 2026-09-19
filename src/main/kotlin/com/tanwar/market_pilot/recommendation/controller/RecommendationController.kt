@@ -7,20 +7,21 @@ import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.util.UUID
 
 @RestController
-@RequestMapping("/recommendations")
+@RequestMapping("/portfolios")
 class RecommendationController(
     private val recommendationService: RecommendationService
 ) {
 
-    @PostMapping
+    @PostMapping("/{portfolioId}/recommendation")
     fun recommend(
-        @Valid @RequestBody request: RecommendationRequest
+        @PathVariable portfolioId: UUID
     ): Mono<ResponseEntity<RecommendationResponse>> {
 
         return recommendationService
-            .recommend(request.stock)
+            .recommend(portfolioId)
             .map { recommendation ->
                 ResponseEntity.ok(recommendation)
             }
