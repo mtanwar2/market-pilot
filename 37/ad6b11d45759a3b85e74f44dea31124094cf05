@@ -1,0 +1,114 @@
+src/main/kotlin/com/tanwar/market_pilot/recommendation/model/RecommendationResponse.kt
+  h_699675406fdcdd 3-4,9-12
+src/test/kotlin/com/tanwar/market_pilot/portfolio/service/PortfolioAnalysisServiceTest.kt
+  h_699675406fdcdd 1-244
+src/main/kotlin/com/tanwar/market_pilot/llm/model/ToolCall.kt
+  h_699675406fdcdd 1-7
+src/test/kotlin/com/tanwar/market_pilot/service/ChatServiceTest.kt
+  h_699675406fdcdd 5-6,11,26-27,32,38-39
+src/test/kotlin/com/tanwar/market_pilot/recommendation/parser/RecommendationParserTest.kt
+  s_df41ef15a4abd3::t_9add105997df90 19-31,38-49,52,57,62,67-104,113-115,124,128,140-161,167-174,182
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/tool/MarketDataTool.kt
+  h_699675406fdcdd 1-8
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/HoldingService.kt
+  h_699675406fdcdd 10,18
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/properties/MarketDataProperties.kt
+  h_699675406fdcdd 1-27
+src/main/kotlin/com/tanwar/market_pilot/llm/model/ToolResult.kt
+  h_699675406fdcdd 1-6
+src/main/resources/application.yml
+  h_699675406fdcdd 8,44-46,54-59
+  h_699675406fdcdd 53
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/RealMarketDataClient.kt
+  h_699675406fdcdd 1-19
+src/test/kotlin/com/tanwar/market_pilot/recommendation/controller/RecommendationControllerTest.kt
+  h_699675406fdcdd 1-4,6-32,46-85
+  s_df41ef15a4abd3::t_d58258485a6dc8 5
+  s_df41ef15a4abd3::t_0bf8e2523cc1aa 33-45
+src/test/kotlin/com/tanwar/market_pilot/portfolio/market/AlphaVantageMarketDataClientTest.kt
+  h_699675406fdcdd 1-6,8-37,40-73,77-137,140-147,150-205,208-267,270-282
+  s_df41ef15a4abd3::t_ea3441351f84f2 148-149
+  s_df41ef15a4abd3::t_4c7b51594df7b5 74-75,138-139,206-207,268-269
+  s_df41ef15a4abd3::t_9dbd3b48985c41 7
+  h_699675406fdcdd 38-39,76
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/tool/impl/DefaultMarketDataTool.kt
+  h_699675406fdcdd 1-16
+src/main/kotlin/com/tanwar/market_pilot/llm/model/ToolDefinition.kt
+  h_699675406fdcdd 1-7
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/AlphaVantageMarketDataClient.kt
+  h_699675406fdcdd 1-102
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/PortfolioService.kt
+  h_699675406fdcdd 7,14,23
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/PortfolioAnalysisService.kt
+  h_699675406fdcdd 8,18
+src/main/kotlin/com/tanwar/market_pilot/recommendation/controller/RecommendationController.kt
+  h_699675406fdcdd 10,13,18,20,24
+src/test/kotlin/com/tanwar/market_pilot/portfolio/market/FakeMarketDataClientTest.kt
+  h_699675406fdcdd 1-49
+src/main/kotlin/com/tanwar/market_pilot/recommendation/prompt/RecommendationPromptBuilder.kt
+  h_699675406fdcdd 3,10-27,29-44,49,71,76
+  s_df41ef15a4abd3::t_3b0987a648c2d6 46-47,52-65,70,73-74
+  h_699675406fdcdd 9
+src/main/kotlin/com/tanwar/market_pilot/portfolio/persistence/PortfolioEntity.kt
+  h_699675406fdcdd 12
+src/test/kotlin/com/tanwar/market_pilot/portfolio/market/tool/DefaultMarketDataToolTest.kt
+  h_699675406fdcdd 1-40
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMGeminiClientImpl.kt
+  h_699675406fdcdd 6,11,16-17,106,168-179,202-203,287-306
+  h_699675406fdcdd 307
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/model/AlphaVantageQuoteResponse.kt
+  h_699675406fdcdd 1-25
+build.gradle.kts
+  h_699675406fdcdd 35
+src/main/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationService.kt
+  h_699675406fdcdd 7,14,19,27-42,53,57-58,62-63
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/FakeMarketDataClient.kt
+  h_699675406fdcdd 4,9-14
+src/test/kotlin/com/tanwar/market_pilot/portfolio/PortfolioAnalysisIntegrationTest.kt
+  h_699675406fdcdd 1-178
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/exception/MarketDataException.kt
+  h_699675406fdcdd 1-6
+src/test/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationServiceTest.kt
+  s_df41ef15a4abd3::t_250f11aeedf7d0 229
+  s_df41ef15a4abd3::t_e7d53d0a6d4c5e 269-280
+  s_df41ef15a4abd3::t_d5b11a077ac351 304
+  s_df41ef15a4abd3::t_8e7815e6d26b97 82-94
+  s_df41ef15a4abd3::t_6fb68e58886142 116-131,133,135-136,138,140-141,143-146,302,305
+  s_df41ef15a4abd3::t_fcc3823f0a00e8 194-205
+  h_699675406fdcdd 7-9,14,17,19,21,24-25,31-32,34,38,43,49-69,75-78,113,132,137,142,149-151,157-159,178,187-190,224,237-239,241-242,251,260-264,299,312-316
+  s_df41ef15a4abd3::t_8ceb9f02c28d00 134
+  s_df41ef15a4abd3::t_3769a8484d18ab 139
+  s_df41ef15a4abd3::t_81d05ad0de6784 228
+  s_df41ef15a4abd3::t_2b73f8638c3e49 303
+  h_699675406fdcdd 70-71,110,160,175,221,240,248,296,309-310,321
+src/test/kotlin/com/tanwar/market_pilot/portfolio/service/MarketDataServiceTest.kt
+  h_699675406fdcdd 1-44
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/rate/MarketDataRateLimiter.kt
+  h_699675406fdcdd 1-53
+src/main/kotlin/com/tanwar/market_pilot/recommendation/validation/RecommendationValidator.kt
+  h_699675406fdcdd 11-12,15-26,29-31
+  h_699675406fdcdd 27,34
+src/main/kotlin/com/tanwar/market_pilot/llm/model/LLMModels.kt
+  h_699675406fdcdd 6-7,13-14,58,68-69,92-93,100-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "37ad6b11d45759a3b85e74f44dea31124094cf05",
+  "prompts": {},
+  "humans": {
+    "h_699675406fdcdd": {
+      "author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  },
+  "sessions": {
+    "s_df41ef15a4abd3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0092a56d-fbe2-4f23-98a9-2cbf0a6461e6",
+        "model": "auto-smart"
+      },
+      "human_author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  }
+}
