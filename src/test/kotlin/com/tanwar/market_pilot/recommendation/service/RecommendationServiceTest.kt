@@ -2,8 +2,12 @@ package com.tanwar.market_pilot.recommendation.service
 
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
+import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
+import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
+import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.portfolio.analysis.model.HoldingAnalysis
 import com.tanwar.market_pilot.portfolio.analysis.model.PortfolioAnalysis
 import com.tanwar.market_pilot.portfolio.service.PortfolioAnalysisService
@@ -15,7 +19,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import reactor.core.publisher.Mono
@@ -29,6 +35,7 @@ class RecommendationServiceTest {
     private val llmClientFactory: LlmClientFactory = mock()
     private val llmClient: LlmClient = mock()
     private val portfolioAnalysisService: PortfolioAnalysisService = mock()
+    private val toolExecutor: ToolExecutor = mock()
 
     private val promptBuilder = RecommendationPromptBuilder()
 
@@ -43,7 +50,8 @@ class RecommendationServiceTest {
         portfolioAnalysisService = portfolioAnalysisService,
         promptBuilder = promptBuilder,
         parser = parser,
-        validator = validator
+        validator = validator,
+        toolExecutor = toolExecutor
     )
 
     private val portfolioId = UUID.randomUUID()
@@ -308,14 +316,95 @@ class RecommendationServiceTest {
 
         verify(llmClient).generate(
             argThat { request ->
-                request.messages.any { message ->
-                    message.content.contains("NVDA") &&
-                            message.content.contains("1755.00") &&
-                            message.content.contains("1700.00") &&
-                            message.content.contains("-55.00") &&
-                            message.content.contains("-3.13")
-                }
+                request.temperature == 0.2 &&
+                    request.tools.any { it.name == "getStockPrice" } &&
+                    request.messages.any { message ->
+                        message.content.orEmpty().contains("NVDA") &&
+                                message.content.orEmpty().contains("1755.00") &&
+                                message.content.orEmpty().contains("1700.00") &&
+                                message.content.orEmpty().contains("-55.00") &&
+                                message.content.orEmpty().contains("-3.13")
+                    }
             }
         )
+    }
+
+    @Test
+    fun `should execute tool calls before parsing the recommendation`() {
+
+        whenever(
+            portfolioAnalysisService.analyze(portfolioId)
+        ).thenReturn(portfolioAnalysis)
+
+        val toolCall = ToolCall(
+            id = "call-1",
+            name = "getStockPrice",
+            arguments = mapOf("symbol" to "NVDA")
+        )
+
+        whenever(llmClientFactory.getClient())
+            .thenReturn(llmClient)
+
+        whenever(llmClient.generate(any()))
+            .thenReturn(
+                Mono.just(
+                    LlmResponse(
+                        content = null,
+                        usage = TokenUsage(10, 5, 15),
+                        finishReason = "STOP",
+                        toolCalls = listOf(toolCall)
+                    )
+                )
+            )
+            .thenReturn(
+                Mono.just(
+                    LlmResponse(
+                        content = """
+                            {
+                              "recommendations": [
+                                {
+                                  "symbol": "NVDA",
+                                  "recommendation": "HOLD",
+                                  "confidence": 0.65,
+                                  "reasons": ["Price confirmed via tool"],
+                                  "risks": ["Market uncertainty"]
+                                }
+                              ]
+                            }
+                        """.trimIndent(),
+                        usage = TokenUsage(20, 10, 30),
+                        finishReason = "STOP"
+                    )
+                )
+            )
+
+        whenever(toolExecutor.execute(toolCall))
+            .thenReturn(170.00)
+
+        StepVerifier.create(
+            service.recommend(portfolioId)
+        )
+            .assertNext { result ->
+                assertEquals(
+                    Recommendation.HOLD,
+                    result.recommendations.first().recommendation
+                )
+                assertEquals(
+                    "Price confirmed via tool",
+                    result.recommendations.first().reasons.first()
+                )
+            }
+            .verifyComplete()
+
+        verify(toolExecutor).execute(toolCall)
+
+        val requestCaptor = argumentCaptor<LlmRequest>()
+        verify(llmClient, times(2)).generate(requestCaptor.capture())
+
+        val followUp = requestCaptor.secondValue.messages
+        assertEquals(LlmRole.TOOL, followUp.last().role)
+        assertEquals(170.00, followUp.last().toolResult?.content)
+        assertEquals(0.2, requestCaptor.firstValue.temperature)
+        assertEquals("getStockPrice", requestCaptor.firstValue.tools.single().name)
     }
 }

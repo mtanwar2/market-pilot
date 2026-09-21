@@ -5,7 +5,7 @@ logging:
     com.tanwar.market_pilot: INFO
 
 llm:
-  provider: ${LLM_PROVIDER:ollama}
+  provider: ${LLM_PROVIDER:gemini}
 
   retry:
     max-attempts: 3

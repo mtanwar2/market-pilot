@@ -2,13 +2,12 @@ package com.tanwar.market_pilot.service
 
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
-import com.tanwar.market_pilot.llm.client.impl.GeminiLlmClient
-import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
-import com.tanwar.market_pilot.llm.model.ToolDefinition
+import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.model.ChatMessage
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatRole
@@ -21,22 +20,19 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.Duration
 
-@SpringBootTest
 class ChatServiceTest {
 
     private val fakeLlmClient = mock<LlmClient>()
     private val llmClientFactory = mock<LlmClientFactory>()
-    private val chatService = ChatService(llmClientFactory)
-    @Autowired
-    lateinit var lmClientFactory: LlmClientFactory
+    private val toolExecutor = mock<ToolExecutor>()
+    private val chatService = ChatService(llmClientFactory, toolExecutor)
 
     @BeforeEach
     fun setUp() {
@@ -184,6 +180,7 @@ class ChatServiceTest {
         assertEquals(1, conversation.size)
         assertEquals(LlmRole.USER, conversation.single().role)
         assertEquals("Hello", conversation.single().content)
+        assertEquals("getStockPrice", requestCaptor.firstValue.tools.single().name)
     }
 
     @Test
@@ -240,7 +237,7 @@ class ChatServiceTest {
         assertEquals(LlmRole.SYSTEM, requestCaptor.firstValue.messages.first().role)
         assertEquals(
             true,
-            systemMessages.single().content.contains("final user message")
+            systemMessages.single().content.orEmpty().contains("final user message")
         )
         assertEquals(
             "What is 2+2?",
@@ -263,6 +260,50 @@ class ChatServiceTest {
         }
     }
 
+    @Test
+    fun `should execute tool calls and send results back to the LLM`() {
+        val toolCall = ToolCall(
+            id = "call-1",
+            name = "getStockPrice",
+            arguments = mapOf("symbol" to "NVDA")
+        )
+
+        whenever(fakeLlmClient.generate(any()))
+            .thenReturn(
+                Mono.just(
+                    llmResponse(
+                        content = null,
+                        toolCalls = listOf(toolCall)
+                    )
+                )
+            )
+            .thenReturn(Mono.just(llmResponse("NVDA is trading at 170.")))
+
+        whenever(toolExecutor.execute(toolCall))
+            .thenReturn(170.00)
+
+        val response = chatService.chat(
+            chatRequest(
+                conversationId = "conversation-123",
+                turnId = "turn-1",
+                message = "What is the NVDA price?"
+            )
+        ).block(Duration.ofSeconds(1))
+
+        assertEquals("NVDA is trading at 170.", response!!.message)
+        verify(toolExecutor).execute(toolCall)
+
+        val requestCaptor = argumentCaptor<LlmRequest>()
+        verify(fakeLlmClient, times(2)).generate(requestCaptor.capture())
+
+        val followUp = requestCaptor.secondValue.messages
+        assertEquals(LlmRole.ASSISTANT, followUp[followUp.size - 2].role)
+        assertEquals(toolCall, followUp[followUp.size - 2].toolCall)
+        assertEquals(LlmRole.TOOL, followUp.last().role)
+        assertEquals("getStockPrice", followUp.last().toolResult?.toolName)
+        assertEquals(170.00, followUp.last().toolResult?.content)
+    }
+
     private fun chatRequest(
         turnId: String? = "turn-1",
         conversationId: String? = null,
@@ -274,11 +315,13 @@ class ChatServiceTest {
     )
 
     private fun llmResponse(
-        content: String,
-        usage: TokenUsage = TokenUsage(0, 0, 0)
+        content: String?,
+        usage: TokenUsage = TokenUsage(0, 0, 0),
+        toolCalls: List<ToolCall> = emptyList()
     ) = LlmResponse(
         content = content,
         usage = usage,
-        finishReason = "stop"
+        finishReason = "stop",
+        toolCalls = toolCalls
     )
 }

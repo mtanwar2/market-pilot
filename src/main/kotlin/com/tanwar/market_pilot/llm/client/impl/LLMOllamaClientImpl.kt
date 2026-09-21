@@ -90,7 +90,7 @@ class OllamaLlmClient(
                     "Ollama responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={}",
                     elapsedMs(startedAt),
                     response.done_reason,
-                    response.message.content.length,
+                    response.message.content?.length,
                     response.prompt_eval_count,
                     response.eval_count
                 )

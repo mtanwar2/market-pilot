@@ -3,12 +3,15 @@ package com.tanwar.market_pilot.llm.client.impl
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.exception.LlmException
 import com.tanwar.market_pilot.llm.model.GeminiContent
+import com.tanwar.market_pilot.llm.model.GeminiFunctionCall
 import com.tanwar.market_pilot.llm.model.GeminiFunctionDeclaration
+import com.tanwar.market_pilot.llm.model.GeminiFunctionResponse
 import com.tanwar.market_pilot.llm.model.GeminiGenerationConfig
 import com.tanwar.market_pilot.llm.model.GeminiPart
 import com.tanwar.market_pilot.llm.model.GeminiRequest
 import com.tanwar.market_pilot.llm.model.GeminiResponse
 import com.tanwar.market_pilot.llm.model.GeminiTool
+import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
@@ -80,29 +83,7 @@ class GeminiLlmClient(
                     null
                 },
 
-            contents = conversationMessages.map { message ->
-                GeminiContent(
-                    role = when (message.role) {
-                        LlmRole.USER -> "user"
-                        LlmRole.ASSISTANT -> "model"
-
-                        LlmRole.SYSTEM ->
-                            error(
-                                "SYSTEM message should not be in contents"
-                            )
-
-                        LlmRole.TOOL ->
-                            error(
-                                "TOOL message is not supported by Gemini yet"
-                            )
-                    },
-                    parts = listOf(
-                        GeminiPart(
-                            text = message.content
-                        )
-                    )
-                )
-            },
+            contents = toGeminiContents(conversationMessages),
             tools = toGeminiTools(request.tools),
             generationConfig = GeminiGenerationConfig(
                 temperature = request.temperature,
@@ -127,7 +108,7 @@ class GeminiLlmClient(
                     message = "Gemini API key is not configured"
                 )
             )
-
+        println("Gemini request=$geminiRequest")
         return webClient
             .post()
             .uri(
@@ -156,27 +137,30 @@ class GeminiLlmClient(
                             "Gemini returned no candidates"
                         )
 
-                val content =
-                    candidate.content
-                        ?.parts
-                        ?.mapNotNull { it.text }
-                        ?.joinToString("")
-                        ?: throw LlmException(
-                            502,
-                            "Gemini returned no text content"
+                val parts = candidate.content?.parts.orEmpty()
+
+                val toolCalls = parts.mapNotNull { part ->
+                    part.functionCall?.let { functionCall ->
+                        ToolCall(
+                            id = functionCall.id,
+                            name = functionCall.name,
+                            arguments = functionCall.args ?: emptyMap(),
+                            thoughtSignature = part.thoughtSignature
                         )
-                val toolCalls =
-                    candidate.content
-                        ?.parts
-                        .orEmpty()
-                        .mapNotNull { part ->
-                            part.functionCall?.let { functionCall ->
-                                ToolCall(
-                                    name = functionCall.name,
-                                    arguments = functionCall.args ?: emptyMap()
-                                )
-                            }
-                        }
+                    }
+                }
+
+                val content = parts
+                    .mapNotNull { it.text }
+                    .joinToString("")
+                    .ifBlank { null }
+
+                if (content == null && toolCalls.isEmpty()) {
+                    throw LlmException(
+                        502,
+                        "Gemini returned no text content"
+                    )
+                }
 
                 val usage = response.usageMetadata
 
@@ -184,7 +168,7 @@ class GeminiLlmClient(
                     "Gemini responded durationMs={} finishReason={} responseLength={} inputTokens={} outputTokens={} totalTokens={}",
                     elapsedMs(startedAt),
                     candidate.finishReason,
-                    content.length,
+                    content?.length,
                     usage?.promptTokenCount,
                     usage?.candidatesTokenCount,
                     usage?.totalTokenCount
@@ -241,9 +225,10 @@ class GeminiLlmClient(
                 val statusCode = ex.statusCode.value()
 
                 log.warn(
-                    "Gemini HTTP request failed durationMs={} statusCode={}",
+                    "Gemini HTTP request failed durationMs={} statusCode={} body={}",
                     elapsedMs(startedAt),
-                    statusCode
+                    statusCode,
+                    ex.responseBodyAsString
                 )
 
                 LlmException(
@@ -304,5 +289,88 @@ class GeminiLlmClient(
                 }
             )
         )
+    }
+
+    private fun toGeminiContents(
+        messages: List<LlmMessage>
+    ): List<GeminiContent> {
+
+        return messages.map { message ->
+
+            when (message.role) {
+
+                LlmRole.USER -> {
+                    GeminiContent(
+                        role = "user",
+                        parts = listOf(
+                            GeminiPart(
+                                text = message.content
+                            )
+                        )
+                    )
+                }
+
+                LlmRole.ASSISTANT -> {
+
+                    if (message.toolCall != null) {
+
+                        GeminiContent(
+                            role = "model",
+                            parts = listOf(
+                                GeminiPart(
+                                    functionCall = GeminiFunctionCall(
+                                        id = message.toolCall.id,
+                                        name = message.toolCall.name,
+                                        args = message.toolCall.arguments,
+                                    ),
+                                    thoughtSignature = message.toolCall.thoughtSignature
+                                )
+                            )
+                        )
+
+                    } else {
+
+                        GeminiContent(
+                            role = "model",
+                            parts = listOf(
+                                GeminiPart(
+                                    text = message.content
+                                )
+                            )
+                        )
+                    }
+                }
+
+                LlmRole.TOOL -> {
+
+                    val toolResult = message.toolResult
+                        ?: throw IllegalArgumentException(
+                            "TOOL message must contain toolResult"
+                        )
+
+                    GeminiContent(
+                        role = "user",
+                        parts = listOf(
+                            GeminiPart(
+                                functionResponse =
+                                    GeminiFunctionResponse(
+                                        id = toolResult.toolCallId,
+                                        name = toolResult.toolName,
+                                        response = mapOf(
+                                            "result" to toolResult.content
+                                        )
+                                    )
+                            )
+                        )
+                    )
+                }
+
+                LlmRole.SYSTEM -> {
+                    error(
+                        "SYSTEM message should be handled separately"
+                    )
+                }
+            }
+        }
     }
 }

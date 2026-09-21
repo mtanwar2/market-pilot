@@ -9,7 +9,7 @@ class RecommendationParser(
     private val objectMapper: ObjectMapper
 ) {
 
-    fun parse(content: String): RecommendationResponse {
+    fun parse(content: String?): RecommendationResponse {
         return objectMapper.readValue(
             content,
             RecommendationResponse::class.java

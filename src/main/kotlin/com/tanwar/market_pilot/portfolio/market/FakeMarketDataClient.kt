@@ -16,7 +16,7 @@ class FakeMarketDataClient : MarketDataClient {
 
     private val prices = mapOf(
         "AAPL" to BigDecimal("190.00"),
-        "NVDA" to BigDecimal("170.00"),
+        "NVDA" to BigDecimal("185.00"),
         "MSFT" to BigDecimal("420.00"),
         "GOOGL" to BigDecimal("250.00")
     )
