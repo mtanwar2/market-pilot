@@ -1,0 +1,85 @@
+src/main/kotlin/com/tanwar/market_pilot/llm/model/LLMModels.kt
+  h_699675406fdcdd 3-4,13,21-23,47,73-75,99-100,120,122-126,128
+  h_699675406fdcdd 121
+src/test/kotlin/com/tanwar/market_pilot/service/ChatServiceTest.kt
+  s_df41ef15a4abd3::t_d899857f8030b6 240
+  s_df41ef15a4abd3::t_b29de4c71a35b4 318-320,324-325
+  s_df41ef15a4abd3::t_b964ab388e4ff2 183
+  s_df41ef15a4abd3::t_e826c8ab78028f 34-35
+  s_df41ef15a4abd3::t_38664811336a0e 263-306
+  s_df41ef15a4abd3::t_157fd68faa460b 9-10,23
+src/main/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationService.kt
+  s_df41ef15a4abd3::t_89b33e2a1830e5 47-51,54-57,59,63,74,86,143-159,164
+  h_699675406fdcdd 3,7,9-11,17,28-29,58,69-73,75-85,87-142,160-163
+src/main/kotlin/com/tanwar/market_pilot/recommendation/parser/RecommendationParser.kt
+  h_699675406fdcdd 12
+src/main/kotlin/com/tanwar/market_pilot/service/ChatService.kt
+  s_df41ef15a4abd3::t_42a4c482d2ea6f 85-86
+  s_df41ef15a4abd3::t_12228ad6a6c23e 209-210
+  h_699675406fdcdd 3,7,9-11,22-23,63-71,74-75,79,83-84,87,95,121-122,124-125,134-183,186-191,215-227
+  s_df41ef15a4abd3::t_5c80ca0a9c2b9a 123,126-133,194,229-230
+  s_df41ef15a4abd3::t_b544fcd8de4149 192-193
+  s_df41ef15a4abd3::t_958350d2cd6ab4 195-197
+  s_df41ef15a4abd3::t_32bafec9a4acf0 231
+  h_699675406fdcdd 184-185,213-214,228
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/Tool.kt
+  h_699675406fdcdd 1-8
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/ToolExecutor.kt
+  h_699675406fdcdd 1-17
+src/main/kotlin/com/tanwar/market_pilot/llm/model/ToolCall.kt
+  h_699675406fdcdd 6-7
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/ToolRegistry.kt
+  h_699675406fdcdd 1-18
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMOllamaClientImpl.kt
+  h_699675406fdcdd 93
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/FakeMarketDataClient.kt
+  h_699675406fdcdd 19
+src/main/resources/application.yml
+  h_699675406fdcdd 8
+src/main/kotlin/com/tanwar/market_pilot/model/ChatModels.kt
+  h_699675406fdcdd 70
+src/test/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationServiceTest.kt
+  s_df41ef15a4abd3::t_4ddb53738cd2cb 5
+  s_df41ef15a4abd3::t_473563086f36fd 38,53-54
+  s_df41ef15a4abd3::t_f7b66d8ff49ae3 401-402
+  s_df41ef15a4abd3::t_db1d8ab4bf5a3b 7,9-10
+  s_df41ef15a4abd3::t_7995ee27df25b9 319-327,331-399
+  s_df41ef15a4abd3::t_678ebbf662237c 400,403-408
+  s_df41ef15a4abd3::t_e42678005a83b7 22,24
+  s_df41ef15a4abd3::t_b8e74805d4038c 409
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMGeminiClientImpl.kt
+  h_699675406fdcdd 6,8,14,86,111,145,147-148,228,230-231,293-374
+  s_df41ef15a4abd3::t_9382da0906a593 171
+  s_df41ef15a4abd3::t_4b47eb033dfd08 140-144,146,150-163
+  h_699675406fdcdd 375
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/impl/GetStockPriceTool.kt
+  h_699675406fdcdd 1-4,6-21,23-26,31-32
+  s_df41ef15a4abd3::t_cc016f8bd8e28f 5,22,27-30
+src/test/kotlin/com/tanwar/market_pilot/tool/ToolExecutorTest.kt
+  h_699675406fdcdd 1-27,30-52,59-78,81-84,89-90,92,111
+  s_df41ef15a4abd3::t_841a13331452bd 28-29,57-58,85-88,91,93-110
+  h_699675406fdcdd 53-56,79-80
+src/main/kotlin/com/tanwar/market_pilot/llm/model/ToolResult.kt
+  h_699675406fdcdd 4-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2a15ea414473baa196a18361b328d83c81e19f0f",
+  "prompts": {},
+  "humans": {
+    "h_699675406fdcdd": {
+      "author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  },
+  "sessions": {
+    "s_df41ef15a4abd3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0092a56d-fbe2-4f23-98a9-2cbf0a6461e6",
+        "model": "auto-smart"
+      },
+      "human_author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  }
+}
