@@ -1,0 +1,246 @@
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/ToolExecutor.kt
+  h_699675406fdcdd 3-6,9,13-15,19-21,23-26,28,32-34,36-39,41-128,130,132
+  h_699675406fdcdd 18,29-31,35,40,129,133
+src/test/kotlin/com/tanwar/market_pilot/llm/client/impl/OllamaLlmClientToolMappingTest.kt
+  s_df41ef15a4abd3::t_0aac41bb573ed1 1-184
+src/main/kotlin/com/tanwar/market_pilot/config/MdcContextBridge.kt
+  h_699675406fdcdd 1-51
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/HallucinationEvaluatorTest.kt
+  h_699675406fdcdd 1-67
+src/main/kotlin/com/tanwar/market_pilot/config/MdcContextSubscriber.kt
+  h_699675406fdcdd 1-44
+src/main/kotlin/com/tanwar/market_pilot/rag/reranking/Reranker.kt
+  h_699675406fdcdd 1-12
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/impl/GetStockPriceTool.kt
+  h_699675406fdcdd 4-5,17
+src/test/kotlin/com/tanwar/market_pilot/security/PromptInjectionGuardTest.kt
+  h_699675406fdcdd 1-228
+src/main/kotlin/com/tanwar/market_pilot/model/ChatModels.kt
+  h_699675406fdcdd 72
+src/main/kotlin/com/tanwar/market_pilot/rag/chunking/TextChunker.kt
+  h_699675406fdcdd 1-14
+src/test/kotlin/com/tanwar/market_pilot/tool/ToolAuthorizationServiceTest.kt
+  h_699675406fdcdd 1-43
+src/main/kotlin/com/tanwar/market_pilot/observability/RequestContext.kt
+  h_699675406fdcdd 1-9
+src/main/kotlin/com/tanwar/market_pilot/portfolio/persistence/PortfolioEntity.kt
+  h_699675406fdcdd 15-16
+src/test/kotlin/com/tanwar/market_pilot/rag/service/FinancialRagTest.kt
+  h_699675406fdcdd 1-37
+src/main/kotlin/com/tanwar/market_pilot/rag/repository/DocumentChunkRepository.kt
+  h_699675406fdcdd 1-24
+src/main/kotlin/com/tanwar/market_pilot/rag/service/DocumentIngestionService.kt
+  h_699675406fdcdd 1-56
+src/main/kotlin/com/tanwar/market_pilot/security/UserContext.kt
+  h_699675406fdcdd 1-23
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/ToolExecutionResult.kt
+  h_699675406fdcdd 1-12
+src/main/kotlin/com/tanwar/market_pilot/llm/audit/AuditLogger.kt
+  h_699675406fdcdd 1-33
+src/main/kotlin/com/tanwar/market_pilot/rag/service/DocumentChunkService.kt
+  h_699675406fdcdd 1-54
+src/main/kotlin/com/tanwar/market_pilot/security/PromptInjectionGuard.kt
+  h_699675406fdcdd 1-69
+src/main/kotlin/com/tanwar/market_pilot/embedding/EmbeddingClient.kt
+  h_699675406fdcdd 1-6
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/HallucinationEvaluator.kt
+  h_699675406fdcdd 1-93
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/AnswerRelevanceEvaluatorTest.kt
+  h_699675406fdcdd 1-68
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/HallucinationResult.kt
+  h_699675406fdcdd 1-6
+src/main/kotlin/com/tanwar/market_pilot/llm/model/LLMModels.kt
+  s_df41ef15a4abd3::t_50585b2e6b4eff 4,49,53-56,59,63-73,75-81,83-92
+  s_df41ef15a4abd3::t_c90d94f17a0773 74,82
+  h_699675406fdcdd 10-11,14-21,125-126
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMOllamaClientImpl.kt
+  s_df41ef15a4abd3::t_a11a0fce869a4f 9,11-15,17,26,34-35,64-65,67,184-277,314-315
+  s_df41ef15a4abd3::t_06f05640b8aafe 100,278-313
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/FaithfulnessEvaluatorTest.kt
+  h_699675406fdcdd 1-68
+src/test/kotlin/com/tanwar/market_pilot/rag/service/RagServiceTest.kt
+  h_699675406fdcdd 1-73
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/EvaluationCase.kt
+  h_699675406fdcdd 1-7
+src/test/kotlin/com/tanwar/market_pilot/rag/service/FinancialDocumentIngestionTest.kt
+  h_699675406fdcdd 1-34
+src/test/kotlin/com/tanwar/market_pilot/service/ChatServiceTest.kt
+  s_df41ef15a4abd3::t_41ba5d3ac3c015 18
+  s_df41ef15a4abd3::t_eed8b4ab35cc34 44,48
+  s_df41ef15a4abd3::t_7a0509df8bf26a 262
+  s_df41ef15a4abd3::t_dd47aa1817391d 321
+  s_df41ef15a4abd3::t_dada9141edbb84 28
+  s_df41ef15a4abd3::t_ba6f12a32be718 46-47
+  s_df41ef15a4abd3::t_046864e121ab85 16
+  s_df41ef15a4abd3::t_c75ec4a70c9c98 305-308,310
+  h_699675406fdcdd 17,43,45
+  s_df41ef15a4abd3::t_b5ab0703801e77 19
+  s_df41ef15a4abd3::t_5c531f2197b458 11
+  s_df41ef15a4abd3::t_3279c748addf14 52,57-59
+  s_df41ef15a4abd3::t_0c46fbb8d988bf 35
+  s_df41ef15a4abd3::t_b0d2cc1ad64824 239
+  s_df41ef15a4abd3::t_cb729e1d6d6363 331
+  s_df41ef15a4abd3::t_2e7a8f39f1c1e3 202-205
+  s_df41ef15a4abd3::t_2d952fade17286 304
+  s_df41ef15a4abd3::t_a8b84505809816 309
+  s_df41ef15a4abd3::t_bb76a7bd2aabfd 3
+  s_df41ef15a4abd3::t_cb57989d219b7c 60-61
+src/test/kotlin/com/tanwar/market_pilot/portfolio/PortfolioAnalysisIntegrationTest.kt
+  s_df41ef15a4abd3::t_8a8e9ba2d6060f 17
+  s_df41ef15a4abd3::t_8b43575ddc9da8 39
+src/main/kotlin/com/tanwar/market_pilot/service/ChatService.kt
+  h_699675406fdcdd 3-6,12-13,15,22-24,29-32,34,41,46,51,56,59,64-77,81,100,102-104,108,110-115,117-121,124-125,127-133,135-139,143,145-147,158-165
+  s_df41ef15a4abd3::t_44eaf67db327c2 148-157
+  h_699675406fdcdd 33
+src/main/kotlin/com/tanwar/market_pilot/llm/audit/AuditEvent.kt
+  h_699675406fdcdd 1-21
+src/main/kotlin/com/tanwar/market_pilot/portfolio/service/PortfolioService.kt
+  h_699675406fdcdd 6,9,14-15,20,23-25,27-32,35-36,38-39,44-51,53-60
+  h_699675406fdcdd 18-19,21,26,33-34,37,52
+src/main/kotlin/com/tanwar/market_pilot/config/ReactorMdcConfiguration.kt
+  h_699675406fdcdd 1-37
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/CostCalculator.kt
+  h_699675406fdcdd 1-39
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RetrievalMetrics.kt
+  h_699675406fdcdd 1-74
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/CostCalculatorTest.kt
+  h_699675406fdcdd 1-46
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RetrievalMetricsTest.kt
+  h_699675406fdcdd 1-85
+src/main/kotlin/com/tanwar/market_pilot/rag/controller/RagController.kt
+  h_699675406fdcdd 1-28
+src/main/kotlin/com/tanwar/market_pilot/portfolio/market/FakeMarketDataClient.kt
+  h_699675406fdcdd 19
+src/test/kotlin/com/tanwar/market_pilot/rag/service/DocumentLoaderTest.kt
+  h_699675406fdcdd 1-25
+src/test/kotlin/com/tanwar/market_pilot/rag/chunking/TextChunkerTest.kt
+  h_699675406fdcdd 1-58
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/AnswerRelevanceResult.kt
+  h_699675406fdcdd 1-6
+src/main/kotlin/com/tanwar/market_pilot/rag/service/DocumentLoader.kt
+  h_699675406fdcdd 1-16
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/FaithfulnessEvaluator.kt
+  h_699675406fdcdd 1-93
+src/test/kotlin/com/tanwar/market_pilot/embedding/OllamaEmbeddingClientTest.kt
+  h_699675406fdcdd 1-28
+src/main/kotlin/com/tanwar/market_pilot/portfolio/Portfolio.kt
+  h_699675406fdcdd 9
+src/test/kotlin/com/tanwar/market_pilot/llm/client/impl/TestDummyLlmClient.kt
+  s_df41ef15a4abd3::t_be8762509478ea 1-47
+src/main/kotlin/com/tanwar/market_pilot/rag/entity/DocumentChunkEntity.kt
+  h_699675406fdcdd 1-40
+src/test/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationServiceTest.kt
+  s_df41ef15a4abd3::t_5e7805921b2e5d 385
+  s_df41ef15a4abd3::t_f43706e456f34d 25
+  s_df41ef15a4abd3::t_cf836e7b8db5cb 19
+  s_df41ef15a4abd3::t_8c2a3f5b01a7d0 390
+  s_df41ef15a4abd3::t_f8e219cd6cb6e1 10
+  s_df41ef15a4abd3::t_9fffea1704b018 408
+  s_df41ef15a4abd3::t_43a9cdff94228f 57-58
+  s_df41ef15a4abd3::t_cad359bcab93ff 415
+  s_df41ef15a4abd3::t_1f1bdc0edb83f2 386-389,391
+src/main/kotlin/com/tanwar/market_pilot/agent/Agent.kt
+  h_699675406fdcdd 1-11
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/impl/GetPortfolioTool.kt
+  h_699675406fdcdd 1-53
+src/main/kotlin/com/tanwar/market_pilot/rag/model/RagAskModel.kt
+  h_699675406fdcdd 1-12
+src/main/kotlin/com/tanwar/market_pilot/embedding/impl/OllamaEmbeddingClient.kt
+  h_699675406fdcdd 1-47
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RagEvaluationDataset.kt
+  h_699675406fdcdd 1-53
+src/main/kotlin/com/tanwar/market_pilot/rag/reranking/impl/SimpleReranker.kt
+  h_699675406fdcdd 1-38
+src/main/kotlin/com/tanwar/market_pilot/agent/AgentState.kt
+  h_699675406fdcdd 1-8
+src/test/kotlin/com/tanwar/market_pilot/llm/audit/AuditLoggerTest.kt
+  h_699675406fdcdd 1-50
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RagCostEvaluationTest.kt
+  h_699675406fdcdd 1-72
+build.gradle.kts
+  h_699675406fdcdd 24
+  s_df41ef15a4abd3::t_6726b3b25ada16 51-52
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RagLatencyEvaluationTest.kt
+  h_699675406fdcdd 1-121
+src/main/kotlin/com/tanwar/market_pilot/embedding/model/EmbeddingModel.kt
+  h_699675406fdcdd 1-10
+src/test/kotlin/com/tanwar/market_pilot/rag/service/DocumentChunkServiceTest.kt
+  h_699675406fdcdd 1-120
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/AnswerRelevanceEvaluator.kt
+  h_699675406fdcdd 1-94
+src/main/kotlin/com/tanwar/market_pilot/agent/impl/MarketPilotAgent.kt
+  h_699675406fdcdd 1-139,141-154,156-245
+  h_699675406fdcdd 140,155
+src/main/kotlin/com/tanwar/market_pilot/portfolio/persistence/repository/PortfolioRepository.kt
+  h_699675406fdcdd 7-10
+src/test/kotlin/com/tanwar/market_pilot/tool/ToolExecutorTest.kt
+  s_df41ef15a4abd3::t_dd3dffb25139dd 19
+  s_df41ef15a4abd3::t_ca4b1c07c46614 122,129-131,133
+  s_df41ef15a4abd3::t_19236d6328bf64 8
+  s_df41ef15a4abd3::t_63a04414ba04a2 123-128,132
+  s_df41ef15a4abd3::t_d070e7b4b8bdd5 107,118
+  s_df41ef15a4abd3::t_b97519ec8cb22a 72,105
+  s_df41ef15a4abd3::t_01ba524d16a0b3 112-113
+  s_df41ef15a4abd3::t_52a39cc422550a 6-7
+  s_df41ef15a4abd3::t_8882623ee96347 80-81
+  s_df41ef15a4abd3::t_d7f2ab501430e2 85-90
+  s_df41ef15a4abd3::t_1bcee5debf7413 3-4
+src/main/kotlin/com/tanwar/market_pilot/rag/service/RagService.kt
+  h_699675406fdcdd 1-139
+src/main/resources/application.yml
+  h_699675406fdcdd 8-11
+src/main/kotlin/com/tanwar/market_pilot/llm/audit/AuditContext.kt
+  h_699675406fdcdd 1-9
+src/main/kotlin/com/tanwar/market_pilot/recommendation/service/RecommendationService.kt
+  s_df41ef15a4abd3::t_09889498a56657 31-32
+  s_df41ef15a4abd3::t_414ba26eefa8af 146
+  s_df41ef15a4abd3::t_d71ec131077272 3
+  s_df41ef15a4abd3::t_13fd0329c87e4f 66-67
+  s_df41ef15a4abd3::t_7f1e1adf29c12c 57-62
+  s_df41ef15a4abd3::t_f3562d191fa3d0 83
+  s_df41ef15a4abd3::t_80cdf27c7952bd 18
+  s_df41ef15a4abd3::t_b5d0b749d7bdc3 123
+src/main/kotlin/com/tanwar/market_pilot/portfolio/persistence/mapper/PortfolioMapper.kt
+  h_699675406fdcdd 11,30
+  h_699675406fdcdd 36
+src/main/kotlin/com/tanwar/market_pilot/rag/evaluation/FaithfulnessResult.kt
+  h_699675406fdcdd 1-6
+src/test/kotlin/com/tanwar/market_pilot/rag/evaluation/RagTokenUsageEvaluationTest.kt
+  h_699675406fdcdd 1-162
+src/main/kotlin/com/tanwar/market_pilot/llm/tool/ToolAuthorizationService.kt
+  h_699675406fdcdd 1-26
+src/main/kotlin/com/tanwar/market_pilot/portfolio/controller/PortfolioController.kt
+  h_699675406fdcdd 23
+  h_699675406fdcdd 22,24,26-28,36-37,39-41
+src/main/kotlin/com/tanwar/market_pilot/config/MdcContextLifter.kt
+  h_699675406fdcdd 1-93
+src/test/kotlin/com/tanwar/market_pilot/rag/service/DocumentIngestionServiceTest.kt
+  h_699675406fdcdd 1-51
+src/main/kotlin/com/tanwar/market_pilot/llm/client/impl/LLMGeminiClientImpl.kt
+  h_699675406fdcdd 18,30-31,39-40,43,95-100,360-362,373
+src/test/kotlin/com/tanwar/market_pilot/rag/reranking/SimpleRerankerTest.kt
+  h_699675406fdcdd 1-46
+src/main/resources/documents/nvidia-report.txt
+  h_699675406fdcdd 1-294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bf5960ffee2c33d8d45b8cf7bb2c92fd9519bd3a",
+  "prompts": {},
+  "humans": {
+    "h_699675406fdcdd": {
+      "author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  },
+  "sessions": {
+    "s_df41ef15a4abd3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0092a56d-fbe2-4f23-98a9-2cbf0a6461e6",
+        "model": "auto-smart"
+      },
+      "human_author": "mohit.tanwar <mohit.tanwar@telekom-digital.com>"
+    }
+  }
+}
