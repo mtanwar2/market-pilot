@@ -6,6 +6,7 @@ import java.util.UUID
 
 data class Portfolio(
     val id: UUID? = null,
+    val userId: UUID? = null,
     val name: String,
     val createdAt: Instant,
     val holdings: List<Holding> = emptyList()

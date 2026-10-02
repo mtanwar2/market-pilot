@@ -7,6 +7,7 @@ import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.tool.ToolExecutionResult
 import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.portfolio.analysis.model.HoldingAnalysis
 import com.tanwar.market_pilot.portfolio.analysis.model.PortfolioAnalysis
@@ -15,11 +16,13 @@ import com.tanwar.market_pilot.recommendation.model.Recommendation
 import com.tanwar.market_pilot.recommendation.parser.RecommendationParser
 import com.tanwar.market_pilot.recommendation.prompt.RecommendationPromptBuilder
 import com.tanwar.market_pilot.recommendation.validation.RecommendationValidator
+import com.tanwar.market_pilot.security.UserContext
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -51,7 +54,8 @@ class RecommendationServiceTest {
         promptBuilder = promptBuilder,
         parser = parser,
         validator = validator,
-        toolExecutor = toolExecutor
+        toolExecutor = toolExecutor,
+        userContext = UserContext()
     )
 
     private val portfolioId = UUID.randomUUID()
@@ -378,8 +382,13 @@ class RecommendationServiceTest {
                 )
             )
 
-        whenever(toolExecutor.execute(toolCall))
-            .thenReturn(170.00)
+        val executionResult = ToolExecutionResult(
+            success = true,
+            content = 170.00
+        )
+
+        whenever(toolExecutor.execute(eq(toolCall), any()))
+            .thenReturn(executionResult)
 
         StepVerifier.create(
             service.recommend(portfolioId)
@@ -396,14 +405,14 @@ class RecommendationServiceTest {
             }
             .verifyComplete()
 
-        verify(toolExecutor).execute(toolCall)
+        verify(toolExecutor).execute(eq(toolCall), any())
 
         val requestCaptor = argumentCaptor<LlmRequest>()
         verify(llmClient, times(2)).generate(requestCaptor.capture())
 
         val followUp = requestCaptor.secondValue.messages
         assertEquals(LlmRole.TOOL, followUp.last().role)
-        assertEquals(170.00, followUp.last().toolResult?.content)
+        assertEquals(executionResult, followUp.last().toolResult?.content)
         assertEquals(0.2, requestCaptor.firstValue.temperature)
         assertEquals("getStockPrice", requestCaptor.firstValue.tools.single().name)
     }

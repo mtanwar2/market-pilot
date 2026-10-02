@@ -1,13 +1,23 @@
 package com.tanwar.market_pilot.llm.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonInclude
 
 data class LlmRequest(
     val messages: List<LlmMessage>,
     val temperature: Double? = null,
     val maxTokens: Int? = null,
-    val tools: List<ToolDefinition> = emptyList()
+    val tools: List<ToolDefinition> = emptyList(),
+    val responseFormat: ResponseFormat? = null
 )
+
+data class ResponseFormat(
+    val type: Type )
+    {
+    enum class Type
+    { JSON
+    }
+}
 
 data class LlmResponse(
     val content: String?=null,
@@ -36,15 +46,50 @@ data class TokenUsage(
     val totalTokens: Long?
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class OllamaChatRequest(
     val model: String,
     val messages: List<OllamaMessage>,
-    val stream: Boolean
+    val stream: Boolean,
+    val tools: List<OllamaTool>? = null,
+    val format: String? = null,
+    val options: OllamaOptions? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class OllamaMessage(
     val role: String,
     val content: String? = null,
+    @JsonProperty("tool_calls")
+    val toolCalls: List<OllamaToolCall>? = null,
+    @JsonProperty("tool_name")
+    val toolName: String? = null
+)
+
+data class OllamaTool(
+    val type: String = "function",
+    val function: OllamaFunction
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class OllamaFunction(
+    val name: String,
+    val description: String? = null,
+    val parameters: Map<String, Any?>? = null,
+    val arguments: Map<String, Any?>? = null
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class OllamaToolCall(
+    val id: String? = null,
+    val function: OllamaFunction
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class OllamaOptions(
+    val temperature: Double? = null,
+    @JsonProperty("num_predict")
+    val numPredict: Int? = null
 )
 
 data class OllamaChatResponse(
@@ -77,7 +122,8 @@ data class GeminiPart(
 
 data class GeminiGenerationConfig(
     val temperature: Double?,
-    val maxOutputTokens: Int?
+    val maxOutputTokens: Int?,
+    val responseMimeType: String? = null
 )
 
 data class GeminiResponse(

@@ -12,6 +12,8 @@ class PortfolioEntity(
     @GeneratedValue
     var id: UUID? = null,
 
+    @Column(name = "user_id", nullable = false) val userId: UUID? = null,
+
     var name: String = "",
 
     var createdAt: Instant = Instant.EPOCH,

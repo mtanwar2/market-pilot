@@ -21,6 +21,7 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("org.hibernate.orm:hibernate-vector")
 
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -47,4 +48,6 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	// Tests never call Gemini. The running app still uses the configured provider.
+	systemProperty("LLM_PROVIDER", "test-dummy")
 }

@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.UUID
 
 @SpringBootTest
 class PortfolioAnalysisIntegrationTest {
@@ -35,6 +36,7 @@ class PortfolioAnalysisIntegrationTest {
         // --------------------------------------------------
 
         val portfolio = PortfolioEntity(
+            userId = UUID.randomUUID(),
             name = "Technology Portfolio",
             createdAt = Instant.now()
         )

@@ -8,6 +8,7 @@ object PortfolioMapper {
     fun toEntity(domain: Portfolio): PortfolioEntity {
         val entity = PortfolioEntity(
             name = domain.name,
+            userId = domain.userId,
             createdAt = domain.createdAt
         )
 
@@ -26,6 +27,7 @@ object PortfolioMapper {
     fun toDomain(entity: PortfolioEntity): Portfolio {
         return Portfolio(
             id = requireNotNull(entity.id),
+            userId = entity.userId,
             name = entity.name,
             createdAt = entity.createdAt,
             holdings = entity.holdings.map(HoldingMapper::toDomain)

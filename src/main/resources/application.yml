@@ -5,14 +5,16 @@ logging:
     com.tanwar.market_pilot: INFO
 
 llm:
-  provider: ${LLM_PROVIDER:gemini}
+  provider: ${LLM_PROVIDER:ollama}
+  embedding:
+    base-url: http://localhost:11434
+    model: nomic-embed-text
 
   retry:
     max-attempts: 3
     initial-backoff-ms: 1000
     max-backoff-ms: 10000
     jitter-factor: 0.5
-
   timeout:
     duration-ms: 300000
 

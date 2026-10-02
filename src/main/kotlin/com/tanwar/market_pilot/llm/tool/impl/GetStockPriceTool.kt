@@ -1,6 +1,8 @@
 package com.tanwar.market_pilot.llm.tool.impl
 
 import com.tanwar.market_pilot.llm.tool.Tool
+import com.tanwar.market_pilot.portfolio.Portfolio
+import com.tanwar.market_pilot.portfolio.market.model.MarketData
 import com.tanwar.market_pilot.portfolio.service.MarketDataService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -12,7 +14,7 @@ class GetStockPriceTool(
 
     override val name: String = "getStockPrice"
 
-    override fun execute(arguments: Map<String, Any?>): Any {
+    override fun execute(arguments: Map<String, Any?>): MarketData {
 
         val symbol = arguments["symbol"]
             ?: throw IllegalArgumentException(

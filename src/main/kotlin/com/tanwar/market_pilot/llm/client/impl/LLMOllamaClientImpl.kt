@@ -6,8 +6,15 @@ import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.OllamaChatRequest
 import com.tanwar.market_pilot.llm.model.OllamaChatResponse
+import com.tanwar.market_pilot.llm.model.OllamaFunction
 import com.tanwar.market_pilot.llm.model.OllamaMessage
+import com.tanwar.market_pilot.llm.model.OllamaOptions
+import com.tanwar.market_pilot.llm.model.OllamaTool
+import com.tanwar.market_pilot.llm.model.OllamaToolCall
+import com.tanwar.market_pilot.llm.model.LlmRole
+import com.tanwar.market_pilot.llm.model.ResponseFormat
 import com.tanwar.market_pilot.llm.model.TokenUsage
+import com.tanwar.market_pilot.llm.model.ToolCall
 import com.tanwar.market_pilot.llm.properties.LlmProperties
 import com.tanwar.market_pilot.llm.properties.TimeoutProperties
 import org.slf4j.LoggerFactory
@@ -16,6 +23,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.util.concurrent.TimeoutException
 
@@ -23,7 +31,8 @@ import java.util.concurrent.TimeoutException
 class OllamaLlmClient(
     llmProperties: LlmProperties,
     private val timeoutProperties: TimeoutProperties,
-    webClientBuilder: WebClient.Builder
+    webClientBuilder: WebClient.Builder,
+    private val objectMapper: ObjectMapper
 ) : LlmClient {
 
     private val config =
@@ -52,17 +61,10 @@ class OllamaLlmClient(
         request: LlmRequest
     ): Mono<LlmResponse> {
 
-        val ollamaRequest = OllamaChatRequest(
+        val ollamaRequest = toOllamaRequest(
+            request = request,
             model = config.model,
-
-            messages = request.messages.map { message ->
-                OllamaMessage(
-                    role = message.role.name.lowercase(),
-                    content = message.content
-                )
-            },
-
-            stream = false
+            objectMapper = objectMapper
         )
 
         val startedAt = System.nanoTime()
@@ -95,27 +97,7 @@ class OllamaLlmClient(
                     response.eval_count
                 )
 
-                LlmResponse(
-                    content = response.message.content,
-
-                    usage = TokenUsage(
-                        inputTokens = response.prompt_eval_count,
-                        outputTokens = response.eval_count,
-
-                        totalTokens =
-                            if (
-                                response.prompt_eval_count != null &&
-                                response.eval_count != null
-                            ) {
-                                response.prompt_eval_count +
-                                        response.eval_count
-                            } else {
-                                null
-                            }
-                    ),
-
-                    finishReason = response.done_reason
-                )
+                toLlmResponse(response)
             }
 
             /*
@@ -199,5 +181,137 @@ class OllamaLlmClient(
 
         private fun elapsedMs(startedAt: Long): Long =
             (System.nanoTime() - startedAt) / 1_000_000
+
+        internal fun toOllamaRequest(
+            request: LlmRequest,
+            model: String,
+            objectMapper: ObjectMapper
+        ): OllamaChatRequest {
+
+            val options =
+                if (
+                    request.temperature != null ||
+                    request.maxTokens != null
+                ) {
+                    OllamaOptions(
+                        temperature = request.temperature,
+                        numPredict = request.maxTokens
+                    )
+                } else {
+                    null
+                }
+
+            return OllamaChatRequest(
+                model = model,
+                messages = request.messages.map { message ->
+                    when (message.role) {
+                        LlmRole.SYSTEM,
+                        LlmRole.USER -> OllamaMessage(
+                            role = message.role.name.lowercase(),
+                            content = message.content
+                        )
+
+                        LlmRole.ASSISTANT -> {
+                            val toolCall = message.toolCall
+
+                            if (toolCall != null) {
+                                OllamaMessage(
+                                    role = "assistant",
+                                    content = message.content,
+                                    toolCalls = listOf(
+                                        OllamaToolCall(
+                                            id = toolCall.id,
+                                            function = OllamaFunction(
+                                                name = toolCall.name,
+                                                arguments =
+                                                    toolCall.arguments
+                                            )
+                                        )
+                                    )
+                                )
+                            } else {
+                                OllamaMessage(
+                                    role = "assistant",
+                                    content = message.content
+                                )
+                            }
+                        }
+
+                        LlmRole.TOOL -> {
+                            val toolResult = message.toolResult
+                                ?: throw IllegalArgumentException(
+                                    "TOOL message must contain toolResult"
+                                )
+
+                            OllamaMessage(
+                                role = "tool",
+                                content = objectMapper.writeValueAsString(
+                                    toolResult.content
+                                ),
+                                toolName = toolResult.toolName
+                            )
+                        }
+                    }
+                },
+                stream = false,
+                tools = request.tools
+                    .takeIf { it.isNotEmpty() }
+                    ?.map { tool ->
+                        OllamaTool(
+                            function = OllamaFunction(
+                                name = tool.name,
+                                description = tool.description,
+                                parameters = tool.parameters
+                            )
+                        )
+                    },
+                format =
+                    if (
+                        request.responseFormat?.type ==
+                        ResponseFormat.Type.JSON
+                    ) {
+                        "json"
+                    } else {
+                        null
+                    },
+                options = options
+            )
+        }
+
+        internal fun toLlmResponse(
+            response: OllamaChatResponse
+        ): LlmResponse {
+            val inputTokens = response.prompt_eval_count
+            val outputTokens = response.eval_count
+
+            return LlmResponse(
+                content = response.message.content
+                    ?.ifBlank { null },
+                usage = TokenUsage(
+                    inputTokens = inputTokens,
+                    outputTokens = outputTokens,
+                    totalTokens =
+                        if (
+                            inputTokens != null &&
+                            outputTokens != null
+                        ) {
+                            inputTokens + outputTokens
+                        } else {
+                            null
+                        }
+                ),
+                finishReason = response.done_reason,
+                toolCalls = response.message.toolCalls
+                    .orEmpty()
+                    .map { toolCall ->
+                        ToolCall(
+                            id = toolCall.id,
+                            name = toolCall.function.name,
+                            arguments =
+                                toolCall.function.arguments.orEmpty()
+                        )
+                    }
+            )
+        }
     }
 }

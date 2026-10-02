@@ -1,6 +1,11 @@
 package com.tanwar.market_pilot.tool
 
+import com.tanwar.market_pilot.llm.audit.AuditContext
+import com.tanwar.market_pilot.llm.audit.AuditLogger
 import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.tool.ToolAuthorizationException
+import com.tanwar.market_pilot.llm.tool.ToolAuthorizationService
+import com.tanwar.market_pilot.llm.tool.ToolExecutionResult
 import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.llm.tool.ToolRegistry
 import com.tanwar.market_pilot.llm.tool.impl.GetStockPriceTool
@@ -11,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.math.BigDecimal
+import java.util.UUID
 
 class ToolExecutorTest {
 
@@ -63,7 +69,7 @@ class ToolExecutorTest {
             listOf(tool)
         )
 
-        val toolExecutor = ToolExecutor(registry)
+        val toolExecutor = toolExecutor(registry)
 
         val result = toolExecutor.execute(
             ToolCall(
@@ -71,13 +77,17 @@ class ToolExecutorTest {
                 arguments = mapOf(
                     "symbol" to "NVDA"
                 )
-            )
+            ),
+            auditContext
         )
 
         assertEquals(
-            MarketData(
-                symbol = "NVDA",
-                currentPrice = BigDecimal("170.00")
+            ToolExecutionResult(
+                success = true,
+                content = MarketData(
+                    symbol = "NVDA",
+                    currentPrice = BigDecimal("170.00")
+                )
             ),
             result
         )
@@ -92,20 +102,33 @@ class ToolExecutorTest {
             listOf(tool)
         )
 
-        val toolExecutor = ToolExecutor(registry)
+        val toolExecutor = toolExecutor(registry)
 
-        val error = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+        val error = org.junit.jupiter.api.assertThrows<ToolAuthorizationException> {
             toolExecutor.execute(
                 ToolCall(
                     name = "unknownTool",
                     arguments = emptyMap()
-                )
+                ),
+                auditContext
             )
         }
 
         assertEquals(
-            "Unknown tool: unknownTool",
+            "Tool execution is not authorized: unknownTool",
             error.message
         )
     }
+
+    private val auditContext = AuditContext(
+        userId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
+        conversationId = "conversation-1",
+        turnId = "turn-1"
+    )
+
+    private fun toolExecutor(registry: ToolRegistry) = ToolExecutor(
+        toolRegistry = registry,
+        toolAuthorizationService = ToolAuthorizationService(),
+        auditLogger = AuditLogger()
+    )
 }

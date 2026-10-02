@@ -15,6 +15,7 @@ import com.tanwar.market_pilot.llm.model.LlmMessage
 import com.tanwar.market_pilot.llm.model.LlmRequest
 import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
+import com.tanwar.market_pilot.llm.model.ResponseFormat
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.model.ToolCall
 import com.tanwar.market_pilot.llm.model.ToolDefinition
@@ -26,6 +27,8 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.util.concurrent.TimeoutException
 
@@ -33,8 +36,10 @@ import java.util.concurrent.TimeoutException
 class GeminiLlmClient(
     llmProperties: LlmProperties,
     private val timeoutProperties: TimeoutProperties,
-    webClientBuilder: WebClient.Builder
+    webClientBuilder: WebClient.Builder,
+    private val objectMapper: ObjectMapper
 ) : LlmClient {
+
 
     private val config =
         llmProperties.providers["gemini"]
@@ -87,7 +92,12 @@ class GeminiLlmClient(
             tools = toGeminiTools(request.tools),
             generationConfig = GeminiGenerationConfig(
                 temperature = request.temperature,
-                maxOutputTokens = request.maxTokens
+                maxOutputTokens = request.maxTokens,
+                responseMimeType = if (request.responseFormat?.type == ResponseFormat.Type.JSON) {
+                    "application/json"
+                } else {
+                    null
+                }
             )
         )
 
@@ -347,6 +357,9 @@ class GeminiLlmClient(
                         ?: throw IllegalArgumentException(
                             "TOOL message must contain toolResult"
                         )
+                    val resultNode = objectMapper.valueToTree<JsonNode>(
+                        toolResult.content
+                    )
 
                     GeminiContent(
                         role = "user",
@@ -357,7 +370,7 @@ class GeminiLlmClient(
                                         id = toolResult.toolCallId,
                                         name = toolResult.toolName,
                                         response = mapOf(
-                                            "result" to toolResult.content
+                                            "result" to resultNode
                                         )
                                     )
                             )

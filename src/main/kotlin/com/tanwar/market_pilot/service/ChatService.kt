@@ -1,58 +1,84 @@
 package com.tanwar.market_pilot.service
 
-import com.tanwar.market_pilot.llm.client.LlmClient
-import com.tanwar.market_pilot.llm.client.LlmClientFactory
+import com.tanwar.market_pilot.agent.impl.MarketPilotAgent
+import com.tanwar.market_pilot.config.ChatLogContext
+import com.tanwar.market_pilot.config.MdcContextBridge
+import com.tanwar.market_pilot.llm.audit.AuditContext
 import com.tanwar.market_pilot.llm.model.LlmMessage
-import com.tanwar.market_pilot.llm.model.LlmRequest
-import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
-import com.tanwar.market_pilot.llm.model.ToolDefinition
-import com.tanwar.market_pilot.llm.model.ToolResult
-import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatResponse
 import com.tanwar.market_pilot.model.ChatRole
+import com.tanwar.market_pilot.security.PromptInjectionGuard
+import com.tanwar.market_pilot.security.UserContext
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.util.UUID
 
 @Service
 class ChatService(
-    private val llmClientFactory: LlmClientFactory,
-    private val toolExecutor: ToolExecutor
+    private val agent: MarketPilotAgent,
+    private val promptInjectionGuard: PromptInjectionGuard,
+    private val userContext: UserContext
 ) {
 
     fun chat(request: ChatRequest): Mono<ChatResponse> {
 
+        // Validate user messages for prompt injection.
+        promptInjectionGuard.validate(
+            request.messages
+        )
+
+        // Validate the turn ID.
         val turnId = request.turnId?.trim().orEmpty()
 
         require(turnId.isNotBlank()) {
             "Turn ID cannot be empty"
         }
 
+        // Validate that at least one message exists.
         require(request.messages.isNotEmpty()) {
             "Messages cannot be empty"
         }
 
+        // Validate that no message is blank.
         require(request.messages.all { it.content.isNotBlank() }) {
             "Message content cannot be empty"
         }
 
+        // The final message must always come from the user.
         require(request.messages.last().role == ChatRole.USER) {
             "The last message in the transcript must be from the user"
         }
 
+        // Determine whether this is a new conversation.
         val isNewConversation = request.conversationId == null
 
+        // Use the existing conversation ID or create a new one.
         val conversationId =
             request.conversationId
                 ?: UUID.randomUUID().toString()
 
+        // Capture the request ID from MDC while we are still
+        // on the servlet request thread.
+        val requestId =
+            MDC.get(ChatLogContext.REQUEST_ID)
+
+        // Capture the current user and request context
+        // for audit logging.
+        val auditContext = AuditContext(
+            userId = userContext.currentUser().userId,
+            conversationId = conversationId,
+            turnId = turnId
+        )
+
+        // Start measuring the complete chat request.
         val startedAt = System.nanoTime()
 
         log.info(
-            "Started chat turn conversationId={} turnId={} newConversation={} messageCount={} lastMessageLength={}",
+            "CHAT_STARTED conversationId={} turnId={} newConversation={} messageCount={} lastMessageLength={}",
             conversationId,
             turnId,
             isNewConversation,
@@ -61,12 +87,6 @@ class ChatService(
         )
 
         val conversationMessages = buildList {
-            add(
-                LlmMessage(
-                    role = LlmRole.SYSTEM,
-                    content = ANSWER_LAST_USER_MESSAGE_INSTRUCTION
-                )
-            )
 
             request.messages.forEach { message ->
                 add(
@@ -76,127 +96,75 @@ class ChatService(
                     )
                 )
             }
+
         }.toMutableList()
 
-        val client = llmClientFactory.getClient()
-
-        return generateWithTools(
-            client = client,
-            conversationMessages = conversationMessages,
-            round = 0
+        return agent.run(
+            conversationMessages,
+            auditContext
         )
-            .map { response ->
-
-                log.info(
-                    "Completed chat turn conversationId={} turnId={} durationMs={} responseLength={} finishReason={} inputTokens={} outputTokens={} totalTokens={}",
-                    conversationId,
-                    turnId,
-                    elapsedMs(startedAt),
-                    response.content?.length,
-                    response.finishReason,
-                    response.usage.inputTokens,
-                    response.usage.outputTokens,
-                    response.usage.totalTokens
-                )
-
-                ChatResponse(
-                    conversationId = conversationId,
-                    turnId = turnId,
-                    message = response.content
-                )
-            }
-            .doOnError { ex ->
-
-                log.error(
-                    "Chat turn failed conversationId={} turnId={} durationMs={} exceptionType={} reason={}",
-                    conversationId,
-                    turnId,
-                    elapsedMs(startedAt),
-                    ex.javaClass.simpleName,
-                    ex.message
-                )
-            }
-    }
-
-    private fun generateWithTools(
-        client: LlmClient,
-        conversationMessages: MutableList<LlmMessage>,
-        round: Int = 0
-    ): Mono<LlmResponse> {
-
-        if (round >= MAX_TOOL_ROUNDS) {
-            return Mono.error(
-                IllegalStateException(
-                    "Exceeded maximum tool-call rounds ($MAX_TOOL_ROUNDS)"
-                )
-            )
-        }
-
-        val llmRequest = LlmRequest(
-            messages = conversationMessages.toList(),
-            tools = toolDefinitions
-        )
-
-        return client.generate(llmRequest)
             .flatMap { response ->
 
-                // No tool call means the LLM has produced
-                // the final answer.
-                if (response.toolCalls.isEmpty()) {
-                    return@flatMap Mono.just(response)
-                }
+                Mono.deferContextual { context ->
 
-                log.info(
-                    "LLM requested {} tool(s): {}",
-                    response.toolCalls.size,
-                    response.toolCalls.map { it.name }
-                )
+                    // Reactor Context is available here even if
+                    // execution has moved to another thread.
+                    //
+                    // Copy the Reactor Context into MDC for the
+                    // duration of this synchronous logging block.
+                    MdcContextBridge.withMdc(context) {
 
-                response.toolCalls.forEach { toolCall ->
-
-                    // Remember the assistant's tool call
-                    // as part of the conversation.
-                    conversationMessages.add(
-                        LlmMessage(
-                            role = LlmRole.ASSISTANT,
-                            toolCall = toolCall
+                        log.info(
+                            "MDC_BRIDGE_TEST requestId={} conversationId={} turnId={}",
+                            MDC.get(ChatLogContext.REQUEST_ID),
+                            MDC.get(ChatLogContext.CONVERSATION_ID),
+                            MDC.get(ChatLogContext.TURN_ID)
                         )
-                    )
 
-                    // Execute the requested tool.
-                    val result = toolExecutor.execute(toolCall)
+                        val durationMs =
+                            (System.nanoTime() - startedAt) / 1_000_000
 
-                    log.info(
-                        "Tool executed name={} result={}",
-                        toolCall.name,
-                        result
-                    )
+                        log.info(
+                            "CHAT_COMPLETED conversationId={} turnId={} durationMs={}",
+                            conversationId,
+                            turnId,
+                            durationMs
+                        )
+                    }
 
-                    // Add the tool result to the conversation.
-                    conversationMessages.add(
-                        LlmMessage(
-                            role = LlmRole.TOOL,
-                            toolResult = ToolResult(
-                                toolCallId = toolCall.id,
-                                toolName = toolCall.name,
-                                content = result
-                            )
+                    Mono.just(
+                        ChatResponse(
+                            conversationId = conversationId,
+                            turnId = turnId,
+                            message = response.content
                         )
                     )
                 }
+            }
 
-                // Ask the LLM again, now that it has
-                // received the tool result.
-                generateWithTools(
-                    client = client,
-                    conversationMessages = conversationMessages,
-                    round = round + 1
-                )
+            // Reactor Context is propagated independently of threads.
+            // The MDC bridge reads these values later and temporarily
+            // places them into MDC.
+            .contextWrite { context ->
+                val withRequestId =
+                    requestId?.let {
+                        context.put(
+                            ChatLogContext.REQUEST_ID,
+                            it
+                        )
+                    } ?: context
+
+                withRequestId
+                    .put(
+                        ChatLogContext.CONVERSATION_ID,
+                        conversationId
+                    )
+                    .put(
+                        ChatLogContext.TURN_ID,
+                        turnId
+                    )
             }
     }
-
-    private fun elapsedMs(startedAt: Long): Long =
-        (System.nanoTime() - startedAt) / 1_000_000
 
     private fun ChatRole.toLlmRole(): LlmRole =
         when (this) {
@@ -205,30 +173,6 @@ class ChatService(
         }
 
     companion object {
-
-        private const val MAX_TOOL_ROUNDS = 5
-
-        private const val ANSWER_LAST_USER_MESSAGE_INSTRUCTION =
-            "Reply only to the final user message. " +
-                    "Earlier messages are conversation history for context; " +
-                    "do not answer them again."
-
-        private val toolDefinitions = listOf(
-            ToolDefinition(
-                name = "getStockPrice",
-                description = "Get the current stock price for a stock symbol",
-                parameters = mapOf(
-                    "type" to "object",
-                    "properties" to mapOf(
-                        "symbol" to mapOf(
-                            "type" to "string",
-                            "description" to "Stock ticker symbol, for example NVDA"
-                        )
-                    ),
-                    "required" to listOf("symbol")
-                )
-            )
-        )
 
         private val log =
             LoggerFactory.getLogger(ChatService::class.java)

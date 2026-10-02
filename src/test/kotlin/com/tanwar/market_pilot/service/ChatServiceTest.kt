@@ -1,5 +1,6 @@
 package com.tanwar.market_pilot.service
 
+import com.tanwar.market_pilot.agent.impl.MarketPilotAgent
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
 import com.tanwar.market_pilot.llm.model.LlmRequest
@@ -7,10 +8,15 @@ import com.tanwar.market_pilot.llm.model.LlmResponse
 import com.tanwar.market_pilot.llm.model.LlmRole
 import com.tanwar.market_pilot.llm.model.TokenUsage
 import com.tanwar.market_pilot.llm.model.ToolCall
+import com.tanwar.market_pilot.llm.tool.ToolExecutionResult
 import com.tanwar.market_pilot.llm.tool.ToolExecutor
 import com.tanwar.market_pilot.model.ChatMessage
 import com.tanwar.market_pilot.model.ChatRequest
 import com.tanwar.market_pilot.model.ChatRole
+import com.tanwar.market_pilot.config.ChatLogContext
+import com.tanwar.market_pilot.security.PromptInjectionGuard
+import com.tanwar.market_pilot.security.UserContext
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -19,12 +25,14 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
+import org.slf4j.MDC
 import java.time.Duration
 
 class ChatServiceTest {
@@ -32,12 +40,23 @@ class ChatServiceTest {
     private val fakeLlmClient = mock<LlmClient>()
     private val llmClientFactory = mock<LlmClientFactory>()
     private val toolExecutor = mock<ToolExecutor>()
-    private val chatService = ChatService(llmClientFactory, toolExecutor)
+    private val promptInjectionGuard = PromptInjectionGuard()
+    private val chatService = ChatService(
+        MarketPilotAgent(llmClientFactory, toolExecutor),
+        promptInjectionGuard,
+        UserContext()
+    )
 
     @BeforeEach
     fun setUp() {
+        MDC.put(ChatLogContext.REQUEST_ID, "request-1")
         whenever(llmClientFactory.getClient())
             .thenReturn(fakeLlmClient)
+    }
+
+    @AfterEach
+    fun tearDown() {
+        MDC.clear()
     }
 
     @Test
@@ -180,7 +199,10 @@ class ChatServiceTest {
         assertEquals(1, conversation.size)
         assertEquals(LlmRole.USER, conversation.single().role)
         assertEquals("Hello", conversation.single().content)
-        assertEquals("getStockPrice", requestCaptor.firstValue.tools.single().name)
+        assertEquals(
+            setOf("getStockPrice", "getPortfolio"),
+            requestCaptor.firstValue.tools.map { it.name }.toSet()
+        )
     }
 
     @Test
@@ -214,7 +236,7 @@ class ChatServiceTest {
     }
 
     @Test
-    fun `should instruct the model to answer only the final user message`() {
+    fun `should send the agent system prompt before the transcript`() {
         whenever(fakeLlmClient.generate(any()))
             .thenReturn(Mono.just(llmResponse("4")))
 
@@ -237,7 +259,7 @@ class ChatServiceTest {
         assertEquals(LlmRole.SYSTEM, requestCaptor.firstValue.messages.first().role)
         assertEquals(
             true,
-            systemMessages.single().content.orEmpty().contains("final user message")
+            systemMessages.single().content.orEmpty().contains("Market Pilot")
         )
         assertEquals(
             "What is 2+2?",
@@ -279,8 +301,13 @@ class ChatServiceTest {
             )
             .thenReturn(Mono.just(llmResponse("NVDA is trading at 170.")))
 
-        whenever(toolExecutor.execute(toolCall))
-            .thenReturn(170.00)
+        val executionResult = ToolExecutionResult(
+            success = true,
+            content = 170.00
+        )
+
+        whenever(toolExecutor.execute(eq(toolCall), any()))
+            .thenReturn(executionResult)
 
         val response = chatService.chat(
             chatRequest(
@@ -291,7 +318,7 @@ class ChatServiceTest {
         ).block(Duration.ofSeconds(1))
 
         assertEquals("NVDA is trading at 170.", response!!.message)
-        verify(toolExecutor).execute(toolCall)
+        verify(toolExecutor).execute(eq(toolCall), any())
 
         val requestCaptor = argumentCaptor<LlmRequest>()
         verify(fakeLlmClient, times(2)).generate(requestCaptor.capture())
@@ -301,7 +328,7 @@ class ChatServiceTest {
         assertEquals(toolCall, followUp[followUp.size - 2].toolCall)
         assertEquals(LlmRole.TOOL, followUp.last().role)
         assertEquals("getStockPrice", followUp.last().toolResult?.toolName)
-        assertEquals(170.00, followUp.last().toolResult?.content)
+        assertEquals(executionResult, followUp.last().toolResult?.content)
     }
 
     private fun chatRequest(

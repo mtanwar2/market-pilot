@@ -69,5 +69,5 @@ enum class ChatRole {
 data class ChatResponse(
     val message: String? = null,
     val conversationId: String,
-    val turnId: String
+    val turnId: String? = null,
 )

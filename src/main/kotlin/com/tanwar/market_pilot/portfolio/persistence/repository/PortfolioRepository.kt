@@ -4,4 +4,7 @@ import com.tanwar.market_pilot.portfolio.persistence.PortfolioEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface PortfolioRepository : JpaRepository<PortfolioEntity, UUID>
+interface PortfolioRepository : JpaRepository<PortfolioEntity, UUID>{
+
+    fun findByIdAndUserId( id: UUID, userId: UUID ): PortfolioEntity?
+}

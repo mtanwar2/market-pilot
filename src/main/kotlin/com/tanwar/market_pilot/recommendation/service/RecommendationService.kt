@@ -1,5 +1,6 @@
 package com.tanwar.market_pilot.recommendation.service
 
+import com.tanwar.market_pilot.llm.audit.AuditContext
 import com.tanwar.market_pilot.llm.client.LlmClient
 import com.tanwar.market_pilot.llm.client.LlmClientFactory
 import com.tanwar.market_pilot.llm.model.LlmMessage
@@ -14,6 +15,7 @@ import com.tanwar.market_pilot.recommendation.model.RecommendationResponse
 import com.tanwar.market_pilot.recommendation.parser.RecommendationParser
 import com.tanwar.market_pilot.recommendation.prompt.RecommendationPromptBuilder
 import com.tanwar.market_pilot.recommendation.validation.RecommendationValidator
+import com.tanwar.market_pilot.security.UserContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -26,7 +28,8 @@ class RecommendationService(
     private val promptBuilder: RecommendationPromptBuilder,
     private val parser: RecommendationParser,
     private val validator: RecommendationValidator,
-    private val toolExecutor: ToolExecutor
+    private val toolExecutor: ToolExecutor,
+    private val userContext: UserContext
 ) {
 
     fun recommend(
@@ -51,10 +54,17 @@ class RecommendationService(
             )
         )
 
+        val auditContext = AuditContext(
+            userId = userContext.currentUser().userId,
+            conversationId = null,
+            turnId = null
+        )
+
         // 3. Call the LLM, executing tools if the model requests them.
         return generateWithTools(
             client = llmClientFactory.getClient(),
-            conversationMessages = conversationMessages
+            conversationMessages = conversationMessages,
+            auditContext = auditContext
         )
             // 4. Convert LLM JSON into RecommendationResponse.
             .map { response ->
@@ -70,6 +80,7 @@ class RecommendationService(
     private fun generateWithTools(
         client: LlmClient,
         conversationMessages: MutableList<LlmMessage>,
+        auditContext: AuditContext,
         round: Int = 0
     ): Mono<LlmResponse> {
 
@@ -109,7 +120,7 @@ class RecommendationService(
                         )
                     )
 
-                    val result = toolExecutor.execute(toolCall)
+                    val result = toolExecutor.execute(toolCall, auditContext)
 
                     log.info(
                         "Tool executed name={} result={}",
@@ -132,6 +143,7 @@ class RecommendationService(
                 generateWithTools(
                     client = client,
                     conversationMessages = conversationMessages,
+                    auditContext = auditContext,
                     round = round + 1
                 )
             }

@@ -5,7 +5,6 @@ import com.tanwar.market_pilot.portfolio.service.PortfolioService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -19,16 +18,14 @@ class PortfolioController(
         @Valid @RequestBody request: CreatePortfolioRequest
     ): ResponseEntity<Portfolio> {
 
-        val portfolio = Portfolio(
-            null,
-            name = request.name,
-            createdAt = Instant.now()
-        )
-
         val createdPortfolio =
-            portfolioService.createPortfolio(portfolio)
+            portfolioService.createPortfolio(
+                name = request.name
+            )
 
-        return ResponseEntity.ok(createdPortfolio)
+        return ResponseEntity.ok(
+            createdPortfolio
+        )
     }
 
     @GetMapping("/{id}")
@@ -36,8 +33,11 @@ class PortfolioController(
         @PathVariable id: UUID
     ): ResponseEntity<Portfolio> {
 
-        val portfolio = portfolioService.getPortfolio(id)
+        val portfolio =
+            portfolioService.getPortfolio(id)
 
-        return ResponseEntity.ok(portfolio)
+        return ResponseEntity.ok(
+            portfolio
+        )
     }
 }
